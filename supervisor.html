@@ -1,0 +1,200 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Куратор и Супервизия</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .supervision-card { background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #9b59b6; }
+        .rating-stars { display: inline-flex; gap: 5px; margin-left: 10px; }
+        .star { color: #ddd; font-size: 20px; cursor: pointer; }
+        .star.active { color: #ffc107; }
+        .area-rating { margin: 10px 0; padding: 10px; background: white; border-radius: 8px; }
+        .supervision-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-right: 10px; }
+        .badge-pending { background: #f39c12; color: white; }
+        .badge-completed { background: #27ae60; color: white; }
+        .chat-float { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; transition: transform 0.2s; }
+        .chat-float:hover { transform: scale(1.05); background: #5a67d8; }
+        .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: none; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><h1>🏥 АВА-центр</h1><p>Автоматизированная система управления</p></div>
+        <div class="user-info"><span>👤 <span id="userName" class="user-name"></span></span><button class="logout-btn" onclick="logout()">🚪 Выход</button></div>
+    </div>
+    
+    <div class="nav">
+        <a href="dashboard.html">📊 Главная</a>
+        <a href="schedule.html">📅 Расписание</a>
+        <a href="aba-therapy.html">🎯 АВА-терапия</a>
+        <a href="neuropsychologist.html">🧠 Нейропсихолог</a>
+        <a href="psychologist.html">💭 Психолог</a>
+        <a href="defectologist.html">📚 Дефектолог</a>
+        <a href="speech-therapist.html">🗣️ Логопед</a>
+        <a href="supervisor.html" class="active">📋 Куратор/Супервизия</a>
+        <a href="intensives.html">⚡ Интенсивы</a>
+        <a href="chat.html">💬 Чат</a>
+        <a href="settings.html">⚙️ Настройки</a>
+    </div>
+    
+    <div class="container">
+        <div id="curatorPanel" style="display: none;">
+            <div class="card"><h2>📋 Создание супервизии</h2>
+                <div class="form-group"><label>Ребенок</label><select id="supervisionChildId"><option value="">Выберите</option></select></div>
+                <div class="form-group"><label>Специалист (АВА-терапевт)</label><select id="supervisionSpecialistId"><option value="">Выберите</option></select></div>
+                <div class="form-group"><label>Дата</label><input type="date" id="supervisionDate"></div>
+                <h3>Оценка по областям</h3>
+                <div class="area-rating"><label>Ведение протоколов (1-5)</label><div class="rating-stars" data-area="protocols"><span class="star" data-value="1">★</span><span class="star" data-value="2">★</span><span class="star" data-value="3">★</span><span class="star" data-value="4">★</span><span class="star" data-value="5">★</span></div><input type="hidden" id="protocolsRating"></div>
+                <div class="area-rating"><label>Сбор данных (1-5)</label><div class="rating-stars" data-area="dataCollection"><span class="star" data-value="1">★</span><span class="star" data-value="2">★</span><span class="star" data-value="3">★</span><span class="star" data-value="4">★</span><span class="star" data-value="5">★</span></div><input type="hidden" id="dataCollectionRating"></div>
+                <div class="area-rating"><label>Взаимодействие с ребенком (1-5)</label><div class="rating-stars" data-area="interaction"><span class="star" data-value="1">★</span><span class="star" data-value="2">★</span><span class="star" data-value="3">★</span><span class="star" data-value="4">★</span><span class="star" data-value="5">★</span></div><input type="hidden" id="interactionRating"></div>
+                <div class="area-rating"><label>Реализация программы (1-5)</label><div class="rating-stars" data-area="implementation"><span class="star" data-value="1">★</span><span class="star" data-value="2">★</span><span class="star" data-value="3">★</span><span class="star" data-value="4">★</span><span class="star" data-value="5">★</span></div><input type="hidden" id="implementationRating"></div>
+                <div class="form-group"><label>Общая оценка (1-5)</label><div class="rating-stars" id="overallRating"><span class="star" data-value="1">★</span><span class="star" data-value="2">★</span><span class="star" data-value="3">★</span><span class="star" data-value="4">★</span><span class="star" data-value="5">★</span></div><input type="hidden" id="overallRatingValue"></div>
+                <div class="form-group"><label>Обратная связь</label><textarea id="supervisionFeedback" rows="4"></textarea></div>
+                <div class="form-group"><label>Рекомендации</label><textarea id="supervisionRecommendations" rows="4"></textarea></div>
+                <button onclick="saveSupervision()" class="btn btn-success">💾 Сохранить</button>
+            </div>
+        </div>
+        
+        <div class="card"><h2>📊 Супервизии</h2>
+            <div class="filters"><select id="filterSupervisionChild"><option value="">Все дети</option></select><select id="filterSupervisionSpecialist"><option value="">Все специалисты</option></select><button onclick="loadSupervisions()" class="btn">🔍 Показать</button></div>
+            <div id="supervisionsList"><p style="text-align:center;">Выберите фильтры</p></div>
+        </div>
+        
+        <div id="specialistPanel" style="display: none;">
+            <div class="card"><h2>📋 Мои супервизии</h2><div id="mySupervisions"></div></div>
+        </div>
+        
+        <div class="card" id="analyticsPanel" style="display: none;">
+            <h2>📈 Аналитика супервизий</h2>
+            <div class="stats-grid"><div class="stat-card"><div class="stat-number" id="totalSupervisions">0</div><div class="stat-label">Всего</div></div><div class="stat-card"><div class="stat-number" id="avgOverallRating">0</div><div class="stat-label">Ср. оценка</div></div><div class="stat-card"><div class="stat-number" id="avgProtocolsRating">0</div><div class="stat-label">Протоколы</div></div><div class="stat-card"><div class="stat-number" id="topSpecialist">-</div><div class="stat-label">Лучший</div></div></div>
+        </div>
+    </div>
+    
+    <a href="chat.html" class="chat-float">💬<span class="unread-badge" id="chatUnreadBadge">0</span></a>
+    
+    <script src="app.js"></script>
+    <script>
+        const user = getCurrentUser();
+        let currentOverallRating = 0;
+        if (!checkAuth()) {}
+        document.getElementById('userName').innerText = getRoleName(user.role);
+        
+        if (user.role === 'куратор_ава') {
+            document.getElementById('curatorPanel').style.display = 'block';
+            document.getElementById('analyticsPanel').style.display = 'block';
+            loadChildrenAndSpecialists(); loadSupervisions(); loadSupervisionAnalytics();
+        } else if (user.role === 'aba_терапевт') {
+            document.getElementById('specialistPanel').style.display = 'block';
+            loadMySupervisions();
+        } else {
+            document.getElementById('analyticsPanel').style.display = 'block';
+            loadSupervisions(); loadSupervisionAnalytics();
+        }
+        
+        function loadChildrenAndSpecialists() {
+            const children = JSON.parse(localStorage.getItem('children') || '[]');
+            const childSelect = document.getElementById('supervisionChildId');
+            const filterChild = document.getElementById('filterSupervisionChild');
+            childSelect.innerHTML = '<option value="">Выберите</option>'; filterChild.innerHTML = '<option value="">Все дети</option>';
+            children.forEach(c => { childSelect.innerHTML += `<option value="${c.id}">${c.fullName} (${c.id})</option>`; filterChild.innerHTML += `<option value="${c.id}">${c.fullName} (${c.id})</option>`; });
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            const aba = specialists.filter(s => s.role === 'aba_терапевт');
+            const specSelect = document.getElementById('supervisionSpecialistId');
+            const filterSpec = document.getElementById('filterSupervisionSpecialist');
+            specSelect.innerHTML = '<option value="">Выберите</option>'; filterSpec.innerHTML = '<option value="">Все специалисты</option>';
+            aba.forEach(s => { specSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`; filterSpec.innerHTML += `<option value="${s.id}">${s.name}</option>`; });
+        }
+        
+        function setupStarRatings() {
+            document.querySelectorAll('.rating-stars').forEach(container => {
+                const stars = container.querySelectorAll('.star');
+                const area = container.dataset.area;
+                stars.forEach(star => {
+                    star.addEventListener('click', function() {
+                        const val = parseInt(this.dataset.value);
+                        updateStars(container, val);
+                        if (area === 'overall') { currentOverallRating = val; document.getElementById('overallRatingValue').value = val; }
+                        else { document.getElementById(`${area}Rating`).value = val; }
+                    });
+                });
+            });
+        }
+        function updateStars(container, val) { const stars = container.querySelectorAll('.star'); stars.forEach((s,i)=> { if(i<val) s.classList.add('active'); else s.classList.remove('active'); }); }
+        
+        function saveSupervision() {
+            const childId = document.getElementById('supervisionChildId').value;
+            const specialistId = document.getElementById('supervisionSpecialistId').value;
+            if (!childId || !specialistId) { alert('Выберите ребенка и специалиста'); return; }
+            addSupervision({
+                childId, specialistId: parseInt(specialistId), curatorId: getCurrentSpecialistId(),
+                date: document.getElementById('supervisionDate').value || getTodayDate(),
+                feedback: document.getElementById('supervisionFeedback').value,
+                recommendations: document.getElementById('supervisionRecommendations').value,
+                rating: currentOverallRating,
+                areas: { protocols: parseInt(document.getElementById('protocolsRating').value)||0, dataCollection: parseInt(document.getElementById('dataCollectionRating').value)||0, interaction: parseInt(document.getElementById('interactionRating').value)||0, implementation: parseInt(document.getElementById('implementationRating').value)||0 }
+            });
+            alert('Сохранено!');
+            document.getElementById('supervisionFeedback').value = ''; document.getElementById('supervisionRecommendations').value = '';
+            document.querySelectorAll('.rating-stars').forEach(c=>updateStars(c,0));
+            document.getElementById('protocolsRating').value = ''; document.getElementById('dataCollectionRating').value = ''; document.getElementById('interactionRating').value = ''; document.getElementById('implementationRating').value = ''; document.getElementById('overallRatingValue').value = ''; currentOverallRating = 0;
+            loadSupervisions(); loadSupervisionAnalytics();
+        }
+        
+        function loadSupervisions() {
+            let sups = JSON.parse(localStorage.getItem('supervisions') || '[]');
+            const childId = document.getElementById('filterSupervisionChild')?.value;
+            const specId = document.getElementById('filterSupervisionSpecialist')?.value;
+            if (childId) sups = sups.filter(s => s.childId === childId);
+            if (specId) sups = sups.filter(s => s.specialistId == specId);
+            sups.sort((a,b)=>b.date.localeCompare(a.date));
+            const container = document.getElementById('supervisionsList');
+            if (sups.length === 0) { container.innerHTML = '<p>Нет супервизий</p>'; return; }
+            container.innerHTML = '';
+            sups.forEach(s => {
+                const child = getChildById(s.childId), spec = getSpecialistById(s.specialistId), curator = getSpecialistById(s.curatorId);
+                container.innerHTML += `<div class="supervision-card"><div><strong>📅 ${formatDate(s.date)}</strong><span class="supervision-badge ${s.rating>=4?'badge-completed':'badge-pending'}">Оценка: ${s.rating}/5</span></div><p><strong>👶 Ребенок:</strong> ${child?child.fullName:s.childId} (${s.childId})<br><strong>👨‍⚕️ Специалист:</strong> ${spec?spec.name:'Не указан'}<br><strong>📋 Куратор:</strong> ${curator?curator.name:'Не указан'}</p><div><strong>Оценки:</strong> 📊 Протоколы: ${s.areas?.protocols||0}/5 | 📈 Данные: ${s.areas?.dataCollection||0}/5 | 🤝 Взаимодействие: ${s.areas?.interaction||0}/5 | 📋 Реализация: ${s.areas?.implementation||0}/5</div><p><strong>💬 Обратная связь:</strong> ${s.feedback}</p>${s.recommendations?`<p><strong>📝 Рекомендации:</strong> ${s.recommendations}</p>`:''}</div>`;
+            });
+        }
+        
+        function loadMySupervisions() {
+            const sups = JSON.parse(localStorage.getItem('supervisions') || '[]').filter(s => s.specialistId === getCurrentSpecialistId()).sort((a,b)=>b.date.localeCompare(a.date));
+            const container = document.getElementById('mySupervisions');
+            if (sups.length === 0) { container.innerHTML = '<p>Нет супервизий</p>'; return; }
+            container.innerHTML = '';
+            sups.forEach(s => { const child=getChildById(s.childId), curator=getSpecialistById(s.curatorId); container.innerHTML += `<div class="supervision-card"><strong>📅 ${formatDate(s.date)}</strong><p><strong>👶 Ребенок:</strong> ${child?child.fullName:s.childId}<br><strong>📋 Куратор:</strong> ${curator?curator.name:'Не указан'}<br><strong>⭐ Оценка:</strong> ${s.rating}/5</p><p><strong>💬 Обратная связь:</strong> ${s.feedback}</p>${s.recommendations?`<p><strong>📝 Рекомендации:</strong> ${s.recommendations}</p>`:''}</div>`; });
+        }
+        
+        function loadSupervisionAnalytics() {
+            const sups = JSON.parse(localStorage.getItem('supervisions') || '[]');
+            const total = sups.length;
+            if(total===0){ document.getElementById('totalSupervisions').innerText='0'; document.getElementById('avgOverallRating').innerText='0'; document.getElementById('avgProtocolsRating').innerText='0'; document.getElementById('topSpecialist').innerText='-'; return; }
+            const avgOverall = Math.round(sups.reduce((s,a)=>s+(a.rating||0),0)/total);
+            const avgProtocols = Math.round(sups.reduce((s,a)=>s+(a.areas?.protocols||0),0)/total);
+            const specR = {}; sups.forEach(s=>{ if(!specR[s.specialistId]) specR[s.specialistId]={sum:0,count:0}; specR[s.specialistId].sum+=s.rating||0; specR[s.specialistId].count++; });
+            let topId=null, topAvg=0; for(const[id,data] of Object.entries(specR)){ const avg=data.sum/data.count; if(avg>topAvg){ topAvg=avg; topId=id; } }
+            const topSpec = topId ? getSpecialistById(parseInt(topId)) : null;
+            document.getElementById('totalSupervisions').innerText=total;
+            document.getElementById('avgOverallRating').innerText=avgOverall;
+            document.getElementById('avgProtocolsRating').innerText=avgProtocols;
+            document.getElementById('topSpecialist').innerHTML = topSpec ? `${topSpec.name}<br><small>ср. ${topAvg.toFixed(1)}</small>` : '-';
+        }
+        
+        function getCurrentSpecialistId() { const spec = JSON.parse(localStorage.getItem('specialists')||'[]').find(s=>s.role==='куратор_ава'); return spec ? spec.id : 3; }
+        
+        function updateFloatChatBadge() {
+            const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+            const user = getCurrentUser();
+            const unread = messages.filter(m => !m.read && m.recipientId !== user?.id).length;
+            const badge = document.getElementById('chatUnreadBadge');
+            if (badge) { if (unread > 0) { badge.innerText = unread > 99 ? '99+' : unread; badge.style.display = 'flex'; } else { badge.style.display = 'none'; } }
+        }
+        
+        setupStarRatings();
+        document.getElementById('supervisionDate').value = getTodayDate();
+        updateFloatChatBadge();
+        window.addEventListener('storage', e => { if (e.key === 'messages') updateFloatChatBadge(); });
+    </script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Логопед</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .speech-card { background: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #e91e63; }
+        .sound-item { display: inline-block; background: #fff; padding: 8px 12px; margin: 5px; border-radius: 20px; border: 1px solid #ddd; cursor: pointer; }
+        .sound-item.mastered { background: #27ae60; color: white; }
+        .sound-item.in-progress { background: #f39c12; color: white; }
+        .tab-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; }
+        .tab-btn { padding: 10px 20px; background: none; border: none; cursor: pointer; font-size: 16px; color: #666; }
+        .tab-btn.active { color: #667eea; border-bottom: 2px solid #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .observation-item { display: flex; gap: 15px; margin-bottom: 10px; align-items: center; }
+        .observation-item input { width: 20px; height: 20px; }
+        .chat-float { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; }
+        .chat-float:hover { transform: scale(1.05); background: #5a67d8; }
+        .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: none; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><h1>🏥 АВА-центр</h1><p>Автоматизированная система управления</p></div>
+        <div class="user-info">
+            <span>👤 <span id="userName" class="user-name"></span></span>
+            <span id="adminBadge" style="background:#e74c3c;color:white;padding:4px 8px;border-radius:20px;font-size:12px;display:none;">👑 Администратор</span>
+            <button class="logout-btn" onclick="logout()">🚪 Выход</button>
+        </div>
+    </div>
+    
+    <div class="nav">
+        <a href="dashboard.html">📊 Главная</a>
+        <a href="schedule.html">📅 Расписание</a>
+        <a href="aba-therapy.html">🎯 АВА-терапия</a>
+        <a href="neuropsychologist.html">🧠 Нейропсихолог</a>
+        <a href="psychologist.html">💭 Психолог</a>
+        <a href="defectologist.html">📚 Дефектолог</a>
+        <a href="speech-therapist.html" class="active">🗣️ Логопед</a>
+        <a href="supervisor.html">📋 Куратор/Супервизия</a>
+        <a href="intensives.html">⚡ Интенсивы</a>
+        <a href="chat.html">💬 Чат</a>
+        <a href="settings.html">⚙️ Настройки</a>
+    </div>
+    
+    <div class="container">
+        <div class="card"><h2>🔍 Поиск пациента по ID</h2><div class="search-box"><input type="text" id="searchChildId" placeholder="Введите ID ребенка"><button onclick="searchChild()" class="btn">Найти</button></div><div id="childInfo" style="display: none;"><div id="childDetails"></div></div></div>
+        
+        <div id="selectedChildPanel" style="display: none;">
+            <div class="tab-buttons"><button class="tab-btn active" data-tab="profile">📋 Речевой профиль</button><button class="tab-btn" data-tab="sounds">🔊 Звуки</button><button class="tab-btn" data-tab="vocabulary">📖 Словарь</button><button class="tab-btn" data-tab="grammar">📝 Грамматика</button><button class="tab-btn" data-tab="sessions">📊 Занятия</button><button class="tab-btn" data-tab="conclusions">📄 Заключения</button><button class="tab-btn" data-tab="program">📚 Программа</button></div>
+            
+            <div id="tab-profile" class="tab-content active">
+                <div class="card"><h2>📋 Речевой профиль</h2><div class="form-group"><label>Дата</label><input type="date" id="profileDate"></div><div class="form-group"><label>Уровень речи</label><select id="speechLevel"><option value="preverbal">Доречевой</option><option value="verbal">Слова</option><option value="phrase">Фраза</option><option value="expanded">Развернутая</option><option value="speech">Связная</option></select></div><div class="form-group"><label>Понимание речи</label><select id="speechComprehension"><option value="0">Нет</option><option value="1">Простые инструкции</option><option value="2">Бытовые фразы</option><option value="3">Сложные инструкции</option><option value="4">Полное</option></select></div><div class="form-group"><label>Характеристика речи</label><textarea id="speechCharacteristics" rows="4"></textarea></div><div class="form-group"><label>Артикуляция</label><textarea id="articulationApparatus" rows="3"></textarea></div><button onclick="saveSpeechProfile()" class="btn btn-success">💾 Сохранить</button></div>
+                <div class="card"><h2>📈 История</h2><div id="profileHistory"></div></div>
+            </div>
+            
+            <div id="tab-sounds" class="tab-content">
+                <div class="card"><h2>🔊 Постановка звуков</h2><div class="form-group"><label>Дата</label><input type="date" id="soundsDate"></div><h3>Гласные</h3><div id="vowelsContainer"></div><h3>Согласные</h3><div id="consonantsContainer"></div><div class="form-group"><label>Комментарии</label><textarea id="soundsComments" rows="3"></textarea></div><button onclick="saveSoundsAssessment()" class="btn btn-success">💾 Сохранить</button></div>
+                <div class="card"><h2>📊 Динамика</h2><div id="soundsHistory"></div></div>
+            </div>
+            
+            <div id="tab-vocabulary" class="tab-content">
+                <div class="card"><h2>📖 Словарный запас</h2><div class="form-group"><label>Дата</label><input type="date" id="vocabDate"></div><div class="form-group"><label>Активный словарь</label><input type="number" id="activeVocabulary" placeholder="кол-во слов"></div><div class="form-group"><label>Пассивный словарь</label><input type="number" id="passiveVocabulary" placeholder="кол-во слов"></div><div class="form-group"><label>Темы</label><div class="observation-item"><input type="checkbox" id="vocabFamily"><label>Семья</label></div><div class="observation-item"><input type="checkbox" id="vocabAnimals"><label>Животные</label></div><div class="observation-item"><input type="checkbox" id="vocabFood"><label>Еда</label></div><div class="observation-item"><input type="checkbox" id="vocabToys"><label>Игрушки</label></div><div class="observation-item"><input type="checkbox" id="vocabActions"><label>Действия</label></div></div><div class="form-group"><label>Комментарии</label><textarea id="vocabComments" rows="3"></textarea></div><button onclick="saveVocabulary()" class="btn btn-success">💾 Сохранить</button></div>
+                <div class="card"><h2>📈 Динамика</h2><div id="vocabHistory"></div></div>
+            </div>
+            
+            <div id="tab-grammar" class="tab-content">
+                <div class="card"><h2>📝 Грамматический строй</h2><div class="form-group"><label>Дата</label><input type="date" id="grammarDate"></div><div class="form-group"><label>Предлоги (0-5)</label><input type="range" id="prepositions" min="0" max="5" step="0.5" value="2" oninput="document.getElementById('prepositionsVal').innerText=this.value"><span id="prepositionsVal">2</span></div><div class="form-group"><label>Согласование (0-5)</label><input type="range" id="agreement" min="0" max="5" step="0.5" value="2" oninput="document.getElementById('agreementVal').innerText=this.value"><span id="agreementVal">2</span></div><div class="form-group"><label>Падежи (0-5)</label><input type="range" id="cases" min="0" max="5" step="0.5" value="2" oninput="document.getElementById('casesVal').innerText=this.value"><span id="casesVal">2</span></div><div class="form-group"><label>Сложные предложения (0-5)</label><input type="range" id="complexSentences" min="0" max="5" step="0.5" value="1" oninput="document.getElementById('complexSentencesVal').innerText=this.value"><span id="complexSentencesVal">1</span></div><div class="form-group"><label>Комментарии</label><textarea id="grammarComments" rows="3"></textarea></div><button onclick="saveGrammar()" class="btn btn-success">💾 Сохранить</button></div>
+                <div class="card"><h2>📈 Динамика</h2><div id="grammarHistory"></div></div>
+            </div>
+            
+            <div id="tab-sessions" class="tab-content">
+                <div class="card"><h2>📊 Логопедическое занятие</h2><div class="form-group"><label>Дата</label><input type="date" id="speechSessionDate"></div><div class="form-group"><label>Цели</label><textarea id="speechGoals" rows="3"></textarea></div><div class="form-group"><label>Методы</label><textarea id="speechMethods" rows="3"></textarea></div><div class="form-group"><label>Выполнение %</label><input type="range" id="speechCompletion" min="0" max="100" value="70" oninput="document.getElementById('speechCompletionVal').innerText=this.value+'%'"><span id="speechCompletionVal">70%</span></div><div class="form-group"><label>ДЗ</label><textarea id="homework" rows="3"></textarea></div><div class="form-group"><label>Примечания</label><textarea id="speechNotes" rows="2"></textarea></div><button onclick="saveSpeechSession()" class="btn btn-success">💾 Сохранить</button></div>
+                <div class="card"><h2>📋 История</h2><div id="speechSessionsHistory"></div></div>
+            </div>
+            
+            <div id="tab-conclusions" class="tab-content">
+                <div class="card"><h2>📄 Логопедическое заключение</h2><div class="form-group"><label>Дата</label><input type="date" id="speechConclusionDate"></div><div class="form-group"><label>Диагноз</label><select id="speechDiagnosis"><option value="">Выберите</option><option value="ОНР 1 уровень">ОНР 1 уровень</option><option value="ОНР 2 уровень">ОНР 2 уровень</option><option value="ОНР 3 уровень">ОНР 3 уровень</option><option value="ФФНР">ФФНР</option><option value="Дизартрия">Дизартрия</option><option value="Алалия">Алалия</option></select></div><div class="form-group"><label>Заключение</label><textarea id="speechConclusion" rows="5"></textarea></div><div class="form-group"><label>Рекомендации</label><textarea id="speechRecommendations" rows="3"></textarea></div><button onclick="saveSpeechConclusion()" class="btn btn-success">💾 Сохранить</button>
+                <button onclick="printSpeechConclusion()" class="btn" style="background:#f39c12; margin-left:10px;">🖨️ Распечатать заключение</button></div>
+            </div>
+            
+            <div id="tab-program" class="tab-content">
+                <div class="card"><h2>📚 Коррекционный маршрут</h2><div class="form-group"><label>Программа</label><textarea id="speechProgram" rows="8"></textarea></div><div class="form-group"><label>Чек-листы</label><textarea id="speechChecklists" rows="5"></textarea></div><button onclick="saveSpeechProgram()" class="btn btn-success">💾 Сохранить</button><button onclick="printSpeechProgram()" class="btn">🖨️ Распечатать</button></div>
+            </div>
+        </div>
+    </div>
+    
+    <a href="chat.html" class="chat-float">💬<span class="unread-badge" id="chatUnreadBadge">0</span></a>
+    
+    <script src="app.js"></script>
+    <script>
+        let currentChildId = null;
+        const vowels = ['А','О','У','И','Ы','Э'];
+        const consonants = ['Б','П','М','В','Ф','Д','Т','Н','Г','К','Х','З','С','Ц','Ж','Ш','Щ','Ч','Л','Р','Й'];
+        
+        if (!checkAuth()) {}
+        const user = getCurrentUser();
+        document.getElementById('userName').innerText = getRoleName(user.role);
+        if (user.role === 'admin') document.getElementById('adminBadge').style.display = 'inline-block';
+        
+        function searchChild() {
+            const childId = document.getElementById('searchChildId').value;
+            if (!childId) { alert('Введите ID'); return; }
+            const child = getChildById(childId);
+            if (!child) { alert('Не найден'); return; }
+            currentChildId = childId;
+            document.getElementById('childDetails').innerHTML = `<div class="alert alert-success"><strong>👶 ${child.fullName}</strong><br>🆔 ${child.id} | 🎂 ${child.birthDate ? formatDate(child.birthDate) : 'Не указана'}<br>📋 Диагноз: ${child.diagnosis || 'Не указан'}</div>`;
+            document.getElementById('childInfo').style.display = 'block';
+            document.getElementById('selectedChildPanel').style.display = 'block';
+            loadProfileHistory(); loadSoundsHistory(); loadVocabularyHistory(); loadGrammarHistory(); loadSpeechSessions(); loadSpeechProgram(); loadSpeechConclusion();
+            renderSoundsSelectors();
+        }
+        
+        function renderSoundsSelectors() {
+            const vowelsContainer = document.getElementById('vowelsContainer');
+            const consonantsContainer = document.getElementById('consonantsContainer');
+            vowelsContainer.innerHTML = ''; consonantsContainer.innerHTML = '';
+            vowels.forEach(v => { vowelsContainer.innerHTML += `<div class="sound-item" data-sound="${v}" onclick="toggleSound(this)">${v}</div>`; });
+            consonants.forEach(c => { consonantsContainer.innerHTML += `<div class="sound-item" data-sound="${c}" onclick="toggleSound(this)">${c}</div>`; });
+        }
+        function toggleSound(el) {
+            if (el.classList.contains('mastered')) el.classList.remove('mastered');
+            else if (el.classList.contains('in-progress')) { el.classList.remove('in-progress'); el.classList.add('mastered'); }
+            else el.classList.add('in-progress');
+        }
+        function getSoundsStatus() { const sounds = {}; document.querySelectorAll('.sound-item').forEach(el => { let s = 'none'; if(el.classList.contains('mastered')) s='mastered'; if(el.classList.contains('in-progress')) s='in-progress'; sounds[el.dataset.sound]=s; }); return sounds; }
+        
+        function saveSpeechProfile() {
+            const profiles = JSON.parse(localStorage.getItem('speechProfiles') || '[]');
+            profiles.push({ id: Date.now(), childId: currentChildId, date: document.getElementById('profileDate').value || getTodayDate(), speechLevel: document.getElementById('speechLevel').value, comprehension: document.getElementById('speechComprehension').value, characteristics: document.getElementById('speechCharacteristics').value, articulation: document.getElementById('articulationApparatus').value });
+            localStorage.setItem('speechProfiles', JSON.stringify(profiles));
+            alert('Сохранено');
+            loadProfileHistory();
+        }
+        function loadProfileHistory() {
+            const profiles = JSON.parse(localStorage.getItem('speechProfiles') || '[]').filter(p => p.childId === currentChildId).sort((a,b)=>b.date.localeCompare(a.date));
+            const container = document.getElementById('profileHistory');
+            if (profiles.length === 0) { container.innerHTML = '<p>Нет данных</p>'; return; }
+            container.innerHTML = '';
+            profiles.forEach(p => { const level = { preverbal:'Доречевой', verbal:'Слова', phrase:'Фраза', expanded:'Развернутая', speech:'Связная' }[p.speechLevel] || p.speechLevel; const comp = {0:'Нет',1:'Простые инструкции',2:'Бытовые фразы',3:'Сложные инструкции',4:'Полное'}[p.comprehension] || p.comprehension; container.innerHTML += `<div class="speech-card"><strong>📅 ${formatDate(p.date)}</strong><p><strong>Уровень:</strong> ${level}<br><strong>Понимание:</strong> ${comp}</p><p>${p.characteristics}</p></div>`; });
+        }
+        
+        function saveSoundsAssessment() {
+            const sounds = JSON.parse(localStorage.getItem('speechSounds') || '[]');
+            sounds.push({ id: Date.now(), childId: currentChildId, date: document.getElementById('soundsDate').value || getTodayDate(), sounds: getSoundsStatus(), comments: document.getElementById('soundsComments').value });
+            localStorage.setItem('speechSounds', JSON.stringify(sounds));
+            alert('Сохранено');
+            loadSoundsHistory();
+        }
+        function loadSoundsHistory() {
+            const sounds = JSON.parse(localStorage.getItem('speechSounds') || '[]').filter(s => s.childId === currentChildId).sort((a,b)=>b.date.localeCompare(a.date));
+            const container = document.getElementById('soundsHistory');
+            if (sounds.length === 0) { container.innerHTML = '<p>Нет данных</p>'; return; }
+            container.innerHTML = '';
+            sounds.forEach(s => { const mastered = Object.values(s.sounds).filter(v=>v==='mastered').length; const inProgress = Object.values(s.sounds).filter(v=>v==='in-progress').length; container.innerHTML += `<div class="speech-card"><strong>📅 ${formatDate(s.date)}</strong><p>✅ Поставлено: ${mastered} | 🔄 В работе: ${inProgress}</p>${s.comments ? `<p>${s.comments}</p>` : ''}</div>`; });
+        }
+        
+        function saveVocabulary() {
+            const vocab = JSON.parse(localStorage.getItem('speechVocabulary') || '[]');
+            vocab.push({ id: Date.now(), childId: currentChildId, date: document.getElementById('vocabDate').value || getTodayDate(), active: parseInt(document.getElementById('activeVocabulary').value)||0, passive: parseInt(document.getElementById('passiveVocabulary').value)||0, topics: { family: document.getElementById('vocabFamily').checked, animals: document.getElementById('vocabAnimals').checked, food: document.getElementById('vocabFood').checked, toys: document.getElementById('vocabToys').checked, actions: document.getElementById('vocabActions').checked }, comments: document.getElementById('vocabComments').value });
+            localStorage.setItem('speechVocabulary', JSON.stringify(vocab));
+            alert('Сохранено');
+            loadVocabularyHistory();
+        }
+        function loadVocabularyHistory() {
+            const vocab = JSON.parse(localStorage.getItem('speechVocabulary') || '[]').filter(v => v.childId === currentChildId).sort((a,b)=>b.date.localeCompare(a.date));
+            const container = document.getElementById('vocabHistory');
+            if (vocab.length === 0) { container.innerHTML = '<p>Нет данных</p>'; return; }
+            container.innerHTML = '';
+            vocab.forEach(v => { container.innerHTML += `<div class="speech-card"><strong>📅 ${formatDate(v.date)}</strong><p>📖 Активный: ${v.active} слов | Пассивный: ${v.passive} слов</p>${v.comments ? `<p>${v.comments}</p>` : ''}</div>`; });
+        }
+        
+        function saveGrammar() {
+            const grammar = JSON.parse(localStorage.getItem('speechGrammar') || '[]');
+            grammar.push({ id: Date.now(), childId: currentChildId, date: document.getElementById('grammarDate').value || getTodayDate(), prepositions: parseFloat(document.getElementById('prepositions').value), agreement: parseFloat(document.getElementById('agreement').value), cases: parseFloat(document.getElementById('cases').value), complexSentences: parseFloat(document.getElementById('complexSentences').value), comments: document.getElementById('grammarComments').value });
+            localStorage.setItem('speechGrammar', JSON.stringify(grammar));
+            alert('Сохранено');
+            loadGrammarHistory();
+        }
+        function loadGrammarHistory() {
+            const grammar = JSON.parse(localStorage.getItem('speechGrammar') || '[]').filter(g => g.childId === currentChildId).sort((a,b)=>b.date.localeCompare(a.date));
+            const container = document.getElementById('grammarHistory');
+            if (grammar.length === 0) { container.innerHTML = '<p>Нет данных</p>'; return; }
+            container.innerHTML = '';
+            grammar.forEach(g => { const avg = (g.prepositions+g.agreement+g.cases+g.complexSentences)/4; container.innerHTML += `<div class="speech-card"><strong>📅 ${formatDate(g.date)}</strong><p>Предлоги: ${g.prepositions} | Согласование: ${g.agreement}<br>Падежи: ${g.cases} | Сложные: ${g.complexSentences}</p><p><strong>Средний балл:</strong> ${avg.toFixed(1)}</p>${g.comments ? `<p>${g.comments}</p>` : ''}</div>`; });
+        }
+        
+        function saveSpeechSession() {
+            const sessions = JSON.parse(localStorage.getItem('speechSessions') || '[]');
+            sessions.push({ id: Date.now(), childId: currentChildId, date: document.getElementById('speechSessionDate').value || getTodayDate(), goals: document.getElementById('speechGoals').value, methods: document.getElementById('speechMethods').value, completion: parseInt(document.getElementById('speechCompletion').value), homework: document.getElementById('homework').value, notes: document.getElementById('speechNotes').value });
+            localStorage.setItem('speechSessions', JSON.stringify(sessions));
+            alert('Сохранено');
+            document.getElementById('speechGoals').value = ''; document.getElementById('speechMethods').value = ''; document.getElementById('homework').value = ''; document.getElementById('speechNotes').value = '';
+            loadSpeechSessions();
+        }
+        function loadSpeechSessions() {
+            const sessions = JSON.parse(localStorage.getItem('speechSessions') || '[]').filter(s => s.childId === currentChildId).sort((a,b)=>b.date.localeCompare(a.date));
+            const container = document.getElementById('speechSessionsHistory');
+            if (sessions.length === 0) { container.innerHTML = '<p>Нет занятий</p>'; return; }
+            container.innerHTML = '';
+            sessions.forEach(s => { container.innerHTML += `<div class="speech-card"><strong>📅 ${formatDate(s.date)}</strong><p><strong>Цели:</strong> ${s.goals}<br><strong>Методы:</strong> ${s.methods}<br><strong>Выполнение:</strong> ${s.completion}%</p>${s.homework ? `<p><strong>ДЗ:</strong> ${s.homework}</p>` : ''}${s.notes ? `<p>${s.notes}</p>` : ''}</div>`; });
+        }
+        
+        function saveSpeechConclusion() {
+            const conclusions = JSON.parse(localStorage.getItem('speechConclusions') || '{}');
+            conclusions[currentChildId] = { date: document.getElementById('speechConclusionDate').value || getTodayDate(), diagnosis: document.getElementById('speechDiagnosis').value, conclusion: document.getElementById('speechConclusion').value, recommendations: document.getElementById('speechRecommendations').value };
+            localStorage.setItem('speechConclusions', JSON.stringify(conclusions));
+            alert('Сохранено');
+        }
+        function loadSpeechConclusion() {
+            const c = JSON.parse(localStorage.getItem('speechConclusions') || '{}')[currentChildId];
+            if(c) { document.getElementById('speechConclusionDate').value = c.date || getTodayDate(); document.getElementById('speechDiagnosis').value = c.diagnosis || ''; document.getElementById('speechConclusion').value = c.conclusion || ''; document.getElementById('speechRecommendations').value = c.recommendations || ''; }
+        }
+        function printSpeechConclusion() {
+            if (!currentChildId) return;
+            const child = getChildById(currentChildId);
+            const c = JSON.parse(localStorage.getItem('speechConclusions') || '{}')[currentChildId] || {};
+            const win = window.open('', '_blank');
+            const today = new Date().toLocaleDateString('ru-RU');
+            win.document.write(`
+                <!DOCTYPE html><html><head><meta charset="UTF-8"><title>Логопедическое заключение - ${child?.fullName || currentChildId}</title>
+                <style>body{font-family:'Times New Roman',serif;margin:40px;}h1{text-align:center;}.info{margin:20px 0;padding:15px;background:#f5f5f5;}.signature{margin-top:50px;display:flex;justify-content:space-between;}.signature-line{width:200px;border-top:1px solid #000;margin-top:30px;}</style>
+                </head><body>
+                <h1>ЛОГОПЕДИЧЕСКОЕ ЗАКЛЮЧЕНИЕ</h1>
+                <div class="info"><p><strong>Пациент:</strong> ${child?.fullName || currentChildId}</p><p><strong>ID:</strong> ${currentChildId}</p><p><strong>Дата рождения:</strong> ${child?.birthDate ? formatDate(child.birthDate) : '___________'}</p></div>
+                <h3>Логопедический диагноз:</h3><p>${c.diagnosis || '___________'}</p>
+                <h3>Заключение:</h3><p>${c.conclusion || '___________'}</p>
+                <h3>Рекомендации:</h3><p>${c.recommendations || '___________'}</p>
+                <div class="signature"><div><p>Логопед:</p><div class="signature-line"></div><p>____________________ / ____________________ /</p></div><div><p>Дата:</p><div class="signature-line"></div><p>${c.date ? formatDate(c.date) : today}</p></div></div>
+                <button onclick="window.print()" style="position:fixed;bottom:20px;right:20px;padding:10px 20px;">🖨️ Печать</button>
+                </body></html>
+            `);
+            win.document.close();
+        }
+        
+        function saveSpeechProgram() {
+            let programs = JSON.parse(localStorage.getItem('programs') || '[]');
+            const idx = programs.findIndex(p => p.childId === currentChildId && p.programType === 'логопед');
+            const prog = { childId: currentChildId, programType: 'логопед', content: document.getElementById('speechProgram').value, checklists: document.getElementById('speechChecklists').value };
+            if (idx !== -1) programs[idx] = prog; else programs.push(prog);
+            localStorage.setItem('programs', JSON.stringify(programs));
+            alert('Сохранено');
+        }
+        function loadSpeechProgram() { const p = getProgramByChildId(currentChildId, 'логопед'); if(p){ document.getElementById('speechProgram').value = p.content || ''; document.getElementById('speechChecklists').value = p.checklists || ''; } }
+        function printSpeechProgram() { if(currentChildId) printProgram(currentChildId); }
+        
+        function updateFloatChatBadge() {
+            const msgs = JSON.parse(localStorage.getItem('messages') || '[]');
+            const user = getCurrentUser();
+            const unread = msgs.filter(m => !m.read && m.recipientId !== user?.id).length;
+            const badge = document.getElementById('chatUnreadBadge');
+            if (badge) { if (unread > 0) { badge.innerText = unread > 99 ? '99+' : unread; badge.style.display = 'flex'; } else { badge.style.display = 'none'; } }
+        }
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => { btn.addEventListener('click', function() { document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); this.classList.add('active'); document.getElementById(`tab-${this.dataset.tab}`).classList.add('active'); }); });
+        document.getElementById('profileDate').value = getTodayDate(); document.getElementById('soundsDate').value = getTodayDate(); document.getElementById('vocabDate').value = getTodayDate(); document.getElementById('grammarDate').value = getTodayDate(); document.getElementById('speechSessionDate').value = getTodayDate(); document.getElementById('speechConclusionDate').value = getTodayDate();
+        updateFloatChatBadge();
+        window.addEventListener('storage', e => { if (e.key === 'messages') updateFloatChatBadge(); });
+    </script>
+</body>
+</html>

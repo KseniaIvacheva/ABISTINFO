@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Интенсивы</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .intensive-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; }
+        .intensive-card.active { background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); }
+        .intensive-card.completed { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); }
+        .intensive-header { display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 15px; }
+        .intensive-goals { margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.2); border-radius: 8px; }
+        .intensive-schedule { background: rgba(255,255,255,0.15); padding: 10px; border-radius: 8px; margin-top: 10px; }
+        .progress-bar { background: rgba(255,255,255,0.3); border-radius: 10px; height: 10px; overflow: hidden; }
+        .progress-fill { background: #ffc107; height: 100%; transition: width 0.3s; }
+        .day-checkbox { display: inline-flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.1); padding: 8px 12px; border-radius: 20px; margin: 5px; }
+        .chat-float { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; transition: transform 0.2s; }
+        .chat-float:hover { transform: scale(1.05); background: #5a67d8; }
+        .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: none; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><h1>🏥 АВА-центр</h1><p>Автоматизированная система управления</p></div>
+        <div class="user-info"><span>👤 <span id="userName" class="user-name"></span></span><button class="logout-btn" onclick="logout()">🚪 Выход</button></div>
+    </div>
+    
+    <div class="nav">
+        <a href="dashboard.html">📊 Главная</a>
+        <a href="schedule.html">📅 Расписание</a>
+        <a href="aba-therapy.html">🎯 АВА-терапия</a>
+        <a href="neuropsychologist.html">🧠 Нейропсихолог</a>
+        <a href="psychologist.html">💭 Психолог</a>
+        <a href="defectologist.html">📚 Дефектолог</a>
+        <a href="speech-therapist.html">🗣️ Логопед</a>
+        <a href="supervisor.html">📋 Куратор/Супервизия</a>
+        <a href="intensives.html" class="active">⚡ Интенсивы</a>
+        <a href="chat.html">💬 Чат</a>
+        <a href="settings.html">⚙️ Настройки</a>
+    </div>
+    
+    <div class="container">
+        <div class="card"><h2>⚡ Создание интенсива</h2>
+            <div class="form-group"><label>Ребенок</label><select id="intensiveChildId"><option value="">Выберите</option></select></div>
+            <div class="form-group"><label>Специалист</label><select id="intensiveSpecialistId"><option value="">Выберите</option></select></div>
+            <div class="form-group"><label>Название</label><input type="text" id="intensiveTitle" placeholder="Интенсив по развитию речи"></div>
+            <div class="form-group"><label>Дата начала</label><input type="date" id="intensiveStartDate"></div>
+            <div class="form-group"><label>Дата окончания</label><input type="date" id="intensiveEndDate"></div>
+            <div class="form-group"><label>Расписание</label><div id="scheduleDays"><label class="day-checkbox"><input type="checkbox" value="mon"> ПН</label><label class="day-checkbox"><input type="checkbox" value="tue"> ВТ</label><label class="day-checkbox"><input type="checkbox" value="wed"> СР</label><label class="day-checkbox"><input type="checkbox" value="thu"> ЧТ</label><label class="day-checkbox"><input type="checkbox" value="fri"> ПТ</label><label class="day-checkbox"><input type="checkbox" value="sat"> СБ</label><label class="day-checkbox"><input type="checkbox" value="sun"> ВС</label></div></div>
+            <div class="form-group"><label>Время</label><input type="text" id="intensiveTime" placeholder="10:00-12:00"></div>
+            <div class="form-group"><label>Цели</label><textarea id="intensiveGoals" rows="4"></textarea></div>
+            <div class="form-group"><label>Чек-лист</label><textarea id="intensiveChecklist" rows="5"></textarea></div>
+            <button onclick="createIntensive()" class="btn btn-success">➕ Создать</button>
+        </div>
+        <div class="card"><h2>📋 Активные</h2><div id="activeIntensives"></div></div>
+        <div class="card"><h2>📋 Завершенные</h2><div id="completedIntensives"></div></div>
+        <div class="card"><h2>📋 Планируемые</h2><div id="plannedIntensives"></div></div>
+    </div>
+    
+    <a href="chat.html" class="chat-float">💬<span class="unread-badge" id="chatUnreadBadge">0</span></a>
+    
+    <script src="app.js"></script>
+    <script>
+        if (!checkAuth()) {}
+        const user = getCurrentUser();
+        document.getElementById('userName').innerText = getRoleName(user.role);
+        
+        function loadChildrenAndSpecialists() {
+            const children = JSON.parse(localStorage.getItem('children') || '[]');
+            const childSelect = document.getElementById('intensiveChildId');
+            childSelect.innerHTML = '<option value="">Выберите</option>';
+            children.forEach(c => childSelect.innerHTML += `<option value="${c.id}">${c.fullName} (${c.id})</option>`);
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            const aba = specialists.filter(s => s.role === 'aba_терапевт');
+            const specSelect = document.getElementById('intensiveSpecialistId');
+            specSelect.innerHTML = '<option value="">Выберите</option>';
+            aba.forEach(s => specSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+        }
+        
+        function createIntensive() {
+            const childId = document.getElementById('intensiveChildId').value;
+            const specialistId = document.getElementById('intensiveSpecialistId').value;
+            const title = document.getElementById('intensiveTitle').value;
+            const start = document.getElementById('intensiveStartDate').value;
+            const end = document.getElementById('intensiveEndDate').value;
+            if (!childId || !specialistId || !title || !start || !end) { alert('Заполните все поля'); return; }
+            const selectedDays = []; document.querySelectorAll('#scheduleDays input:checked').forEach(cb => selectedDays.push(cb.value));
+            const today = getTodayDate();
+            let status = 'planned';
+            if (start <= today && end >= today) status = 'active';
+            else if (end < today) status = 'completed';
+            addIntensive({ childId, specialistId: parseInt(specialistId), title, startDate: start, endDate: end, schedule: { days: selectedDays, time: document.getElementById('intensiveTime').value }, goals: document.getElementById('intensiveGoals').value, checklist: document.getElementById('intensiveChecklist').value, status, progress: 0 });
+            alert('Создан!');
+            document.getElementById('intensiveTitle').value = ''; document.getElementById('intensiveGoals').value = ''; document.getElementById('intensiveChecklist').value = ''; document.querySelectorAll('#scheduleDays input').forEach(cb=>cb.checked=false);
+            loadIntensives();
+        }
+        
+        function loadIntensives() {
+            const all = JSON.parse(localStorage.getItem('intensives') || '[]');
+            const active = all.filter(i=>i.status==='active').sort((a,b)=>a.startDate.localeCompare(b.startDate));
+            const completed = all.filter(i=>i.status==='completed').sort((a,b)=>b.endDate.localeCompare(a.endDate));
+            const planned = all.filter(i=>i.status==='planned').sort((a,b)=>a.startDate.localeCompare(b.startDate));
+            renderList(active, 'activeIntensives', true); renderList(completed, 'completedIntensives', false); renderList(planned, 'plannedIntensives', true);
+        }
+        
+        function renderList(list, containerId, showProgress) {
+            const container = document.getElementById(containerId);
+            if (list.length === 0) { container.innerHTML = '<p>Нет интенсивов</p>'; return; }
+            container.innerHTML = '';
+            list.forEach(i => {
+                const child = getChildById(i.childId), spec = getSpecialistById(i.specialistId);
+                const days = i.schedule?.days?.map(d=>getDayName(d)).join(', ') || 'Не указано';
+                container.innerHTML += `<div class="intensive-card ${i.status}"><div class="intensive-header"><strong>🎯 ${i.title}</strong><span>${formatDate(i.startDate)} - ${formatDate(i.endDate)}</span></div><p><strong>👶 Ребенок:</strong> ${child?child.fullName:i.childId}<br><strong>👨‍⚕️ Специалист:</strong> ${spec?spec.name:'Не указан'}<br><strong>📅 Расписание:</strong> ${days} ${i.schedule?.time||''}</p><div class="intensive-goals"><strong>🎯 Цели:</strong><br>${i.goals}</div>${i.checklist?`<div class="intensive-schedule"><strong>✅ Чек-лист:</strong><br>${i.checklist.replace(/\n/g,'<br>')}</div>`:''}${showProgress?`<div class="progress-tracker"><div style="display:flex;justify-content:space-between;"><span>Прогресс</span><span>${i.progress||0}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${i.progress||0}%"></div></div><button onclick="updateProgress(${i.id})" class="btn" style="margin-top:10px;background:rgba(255,255,255,0.2);">📊 Обновить</button><button onclick="printChecklist('${i.childId}','${i.title}')" class="btn" style="margin-top:10px;margin-left:10px;background:rgba(255,255,255,0.2);">🖨️ Чек-лист</button></div>`:''}</div>`;
+            });
+        }
+        
+        function updateProgress(id) {
+            const intensives = JSON.parse(localStorage.getItem('intensives') || '[]');
+            const i = intensives.find(x=>x.id===id);
+            if(!i) return;
+            const p = prompt('Процент выполнения (0-100):', i.progress||0);
+            if(p!==null && !isNaN(p)){ i.progress=Math.min(100,Math.max(0,parseInt(p))); if(i.progress>=100)i.status='completed'; localStorage.setItem('intensives',JSON.stringify(intensives)); loadIntensives(); alert('Обновлено!'); }
+        }
+        
+        function printChecklist(childId, title) {
+            const child = getChildById(childId);
+            const intensives = JSON.parse(localStorage.getItem('intensives') || '[]');
+            const i = intensives.find(x=>x.childId===childId && x.title===title);
+            if(!i) return;
+            const win = window.open('','_blank');
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Чек-лист - ${title}</title><style>body{font-family:Arial;margin:40px}h1{color:#667eea}.checklist-item{margin:10px 0;display:flex;gap:10px}.checklist-item input{width:20px;height:20px}</style></head><body><h1>📋 Чек-лист интенсива</h1><p><strong>Название:</strong> ${i.title}<br><strong>Ребенок:</strong> ${child?child.fullName:childId}<br><strong>Период:</strong> ${formatDate(i.startDate)} - ${formatDate(i.endDate)}<br><strong>Специалист:</strong> ${getSpecialistById(i.specialistId)?.name||'Не указан'}</p><hr><h2>Цели:</h2><p>${i.goals}</p><hr><h2>Чек-лист:</h2>${i.checklist.split('\n').map(item=>`<div class="checklist-item"><input type="checkbox"> <label>${item}</label></div>`).join('')}<hr><h2>Результаты:</h2><p>_________________________________</p><button onclick="window.print()" style="position:fixed;bottom:20px;right:20px;padding:10px 20px;">🖨️ Печать</button></body></html>`);
+            win.document.close();
+        }
+        
+        function getDayName(d) { const days={mon:'ПН',tue:'ВТ',wed:'СР',thu:'ЧТ',fri:'ПТ',sat:'СБ',sun:'ВС'}; return days[d]||d; }
+        
+        function updateFloatChatBadge() {
+            const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+            const user = getCurrentUser();
+            const unread = messages.filter(m => !m.read && m.recipientId !== user?.id).length;
+            const badge = document.getElementById('chatUnreadBadge');
+            if (badge) { if (unread > 0) { badge.innerText = unread > 99 ? '99+' : unread; badge.style.display = 'flex'; } else { badge.style.display = 'none'; } }
+        }
+        
+        loadChildrenAndSpecialists(); loadIntensives();
+        document.getElementById('intensiveStartDate').value = getTodayDate();
+        const nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth()+1); document.getElementById('intensiveEndDate').value = nextMonth.toISOString().split('T')[0];
+        updateFloatChatBadge();
+        window.addEventListener('storage', e => { if (e.key === 'messages') updateFloatChatBadge(); });
+    </script>
+</body>
+</html>

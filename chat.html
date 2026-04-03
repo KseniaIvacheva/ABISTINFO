@@ -1,0 +1,284 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Чат</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .chat-sidebar { width: 280px; background: white; border-radius: 12px; margin-right: 20px; overflow: hidden; flex-shrink: 0; }
+        .chat-main { flex: 1; display: flex; flex-direction: column; }
+        .chat-layout { display: flex; gap: 20px; height: calc(100vh - 180px); min-height: 500px; }
+        .chat-user { padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .chat-user:hover { background: #f8f9fa; }
+        .chat-user.active { background: #667eea; color: white; }
+        .chat-user.active .chat-user-name { color: white; }
+        .chat-user-name { font-weight: 500; }
+        .chat-user-role { font-size: 11px; color: #888; }
+        .chat-user.active .chat-user-role { color: rgba(255,255,255,0.8); }
+        .unread-count { background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; min-width: 18px; text-align: center; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 15px; background: #f8f9fa; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .message { display: flex; flex-direction: column; max-width: 70%; }
+        .message-own { align-self: flex-end; }
+        .message-other { align-self: flex-start; }
+        .message-bubble { padding: 10px 14px; border-radius: 18px; word-wrap: break-word; }
+        .message-own .message-bubble { background: #667eea; color: white; border-bottom-right-radius: 4px; }
+        .message-other .message-bubble { background: white; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .message-sender { font-size: 12px; color: #667eea; margin-bottom: 4px; font-weight: 500; }
+        .message-time { font-size: 10px; color: #999; margin-top: 4px; }
+        .chat-input { display: flex; gap: 10px; margin-top: 15px; padding: 10px; background: white; border-radius: 12px; }
+        .chat-input input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 24px; font-size: 14px; }
+        .chat-input button { padding: 10px 20px; border-radius: 24px; }
+        @media (max-width: 768px) { .chat-layout { flex-direction: column; height: auto; } .chat-sidebar { width: 100%; margin-right: 0; margin-bottom: 15px; } }
+        .chat-float { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><h1>🏥 АВА-центр</h1><p>Автоматизированная система управления</p></div>
+        <div class="user-info">
+            <span>👤 <span id="userName" class="user-name"></span></span>
+            <span id="adminBadge" style="background:#e74c3c;color:white;padding:4px 8px;border-radius:20px;font-size:12px;display:none;">👑 Администратор</span>
+            <button class="logout-btn" onclick="logout()">🚪 Выход</button>
+        </div>
+    </div>
+    
+    <div class="nav">
+        <a href="dashboard.html">📊 Главная</a>
+        <a href="schedule.html">📅 Расписание</a>
+        <a href="aba-therapy.html">🎯 АВА-терапия</a>
+        <a href="neuropsychologist.html">🧠 Нейропсихолог</a>
+        <a href="psychologist.html">💭 Психолог</a>
+        <a href="defectologist.html">📚 Дефектолог</a>
+        <a href="speech-therapist.html">🗣️ Логопед</a>
+        <a href="supervisor.html">📋 Куратор/Супервизия</a>
+        <a href="intensives.html">⚡ Интенсивы</a>
+        <a href="chat.html" class="active">💬 Чат</a>
+        <a href="settings.html">⚙️ Настройки</a>
+    </div>
+    
+    <div class="container">
+        <div class="chat-layout">
+            <div class="chat-sidebar">
+                <div style="padding:15px;border-bottom:1px solid #eee;background:#f8f9fa;font-weight:bold;">💬 Общий чат</div>
+                <div id="generalChatUser" class="chat-user" data-chat-type="general">
+                    <span class="chat-user-name">Все сотрудники</span>
+                    <span id="generalUnread" class="unread-count" style="display:none;">0</span>
+                </div>
+                <div style="padding:15px;border-bottom:1px solid #eee;background:#f8f9fa;margin-top:10px;font-weight:bold;">👥 Специалисты</div>
+                <div id="specialistsList"></div>
+            </div>
+            <div class="chat-main">
+                <div class="card" style="flex:1;display:flex;flex-direction:column;margin-bottom:0;height:100%;">
+                    <div id="chatHeader" style="padding-bottom:15px;border-bottom:1px solid #eee;font-weight:bold;">💬 Общий чат</div>
+                    <div id="chatMessages" class="chat-messages" style="flex:1;overflow-y:auto;min-height:400px;"></div>
+                    <div class="chat-input">
+                        <input type="text" id="messageInput" placeholder="Введите сообщение...">
+                        <input type="file" id="fileInput" style="display:none;" accept="image/*">
+                        <button onclick="document.getElementById('fileInput').click()" style="background:#95a5a6;">📎</button>
+                        <button onclick="sendMessage()" id="sendBtn">📤 Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+    <script>
+        let currentChat = { type: 'general', id: null, name: 'Общий чат' };
+        
+        if (!checkAuth()) {}
+        
+        const user = getCurrentUser();
+        document.getElementById('userName').innerText = getRoleName(user.role);
+        if (user.role === 'admin') document.getElementById('adminBadge').style.display = 'inline-block';
+        
+        function loadSpecialists() {
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            const container = document.getElementById('specialistsList');
+            container.innerHTML = '';
+            
+            specialists.forEach(spec => {
+                if (spec.id !== user.id) {
+                    const div = document.createElement('div');
+                    div.className = 'chat-user';
+                    div.setAttribute('data-user-id', spec.id);
+                    div.setAttribute('data-user-name', spec.name);
+                    div.onclick = () => openPrivateChat(spec.id, spec.name);
+                    
+                    const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+                    const unread = messages.filter(m => m.senderId === spec.id && m.recipientId === user.id && !m.read).length;
+                    
+                    div.innerHTML = `
+                        <div>
+                            <div class="chat-user-name">${spec.name}</div>
+                            <div class="chat-user-role">${getRoleName(spec.role)}</div>
+                        </div>
+                        ${unread > 0 ? `<span class="unread-count">${unread}</span>` : ''}
+                    `;
+                    container.appendChild(div);
+                }
+            });
+            
+            const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+            const generalUnread = messages.filter(m => m.recipientId === null && m.senderId !== user.id && !m.read).length;
+            const generalBadge = document.getElementById('generalUnread');
+            if (generalUnread > 0) {
+                generalBadge.innerText = generalUnread > 99 ? '99+' : generalUnread;
+                generalBadge.style.display = 'inline-block';
+            } else {
+                generalBadge.style.display = 'none';
+            }
+            
+            document.getElementById('generalChatUser').onclick = () => openGeneralChat();
+        }
+        
+        function openGeneralChat() {
+            currentChat = { type: 'general', id: null, name: 'Общий чат' };
+            document.querySelectorAll('.chat-user').forEach(el => el.classList.remove('active'));
+            document.getElementById('generalChatUser').classList.add('active');
+            document.getElementById('chatHeader').innerHTML = '💬 Общий чат';
+            loadMessages();
+        }
+        
+        function openPrivateChat(userId, userName) {
+            currentChat = { type: 'private', id: userId, name: userName };
+            document.querySelectorAll('.chat-user').forEach(el => el.classList.remove('active'));
+            const selected = document.querySelector(`.chat-user[data-user-id="${userId}"]`);
+            if (selected) selected.classList.add('active');
+            document.getElementById('chatHeader').innerHTML = `💬 ${userName}`;
+            loadMessages();
+        }
+        
+        function loadMessages() {
+            let messages = JSON.parse(localStorage.getItem('messages') || '[]');
+            
+            if (currentChat.type === 'general') {
+                messages = messages.filter(m => m.recipientId === null);
+            } else {
+                messages = messages.filter(m => 
+                    (m.senderId === user.id && m.recipientId === currentChat.id) ||
+                    (m.senderId === currentChat.id && m.recipientId === user.id)
+                );
+            }
+            
+            messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            
+            const container = document.getElementById('chatMessages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:#666;padding:40px;">💬 Нет сообщений. Напишите что-нибудь!</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            messages.forEach(msg => {
+                const isOwn = msg.senderId === user.id;
+                const sender = getSpecialistById(msg.senderId);
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isOwn ? 'message-own' : 'message-other'}`;
+                messageDiv.innerHTML = `
+                    ${!isOwn ? `<div class="message-sender">${sender?.name || 'Пользователь'}</div>` : ''}
+                    <div class="message-bubble">
+                        ${msg.message || ''}
+                        ${msg.file ? `<div><img src="${msg.file}" style="max-width:200px;border-radius:8px;margin-top:8px;"></div>` : ''}
+                    </div>
+                    <div class="message-time">${new Date(msg.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                `;
+                container.appendChild(messageDiv);
+            });
+            
+            container.scrollTop = container.scrollHeight;
+            
+            let updated = false;
+            messages.forEach(msg => {
+                if ((currentChat.type === 'general' && msg.recipientId === null && msg.senderId !== user.id && !msg.read) ||
+                    (currentChat.type !== 'general' && msg.senderId === currentChat.id && msg.recipientId === user.id && !msg.read)) {
+                    msg.read = true;
+                    updated = true;
+                }
+            });
+            if (updated) {
+                localStorage.setItem('messages', JSON.stringify(messages));
+                updateChatBadge();
+                loadSpecialists();
+            }
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!message && !file) return;
+            
+            const send = (fileData) => {
+                const newMsg = {
+                    id: Date.now(),
+                    senderId: user.id,
+                    senderName: user.name || getRoleName(user.role),
+                    recipientId: currentChat.type === 'private' ? currentChat.id : null,
+                    message: message,
+                    file: fileData || null,
+                    read: false,
+                    createdAt: new Date().toISOString()
+                };
+                const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+                messages.push(newMsg);
+                localStorage.setItem('messages', JSON.stringify(messages));
+                
+                input.value = '';
+                fileInput.value = '';
+                loadMessages();
+                updateChatBadge();
+                loadSpecialists();
+                showToast('✅ Отправлено', 'Сообщение отправлено');
+            };
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) { send(e.target.result); };
+                reader.readAsDataURL(file);
+            } else {
+                send(null);
+            }
+        }
+        
+        function updateChatBadge() {
+            const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+            const unread = messages.filter(m => m.recipientId === null && m.senderId !== user.id && !m.read).length;
+            const generalBadge = document.getElementById('generalUnread');
+            if (generalBadge) {
+                if (unread > 0) {
+                    generalBadge.innerText = unread > 99 ? '99+' : unread;
+                    generalBadge.style.display = 'inline-block';
+                } else {
+                    generalBadge.style.display = 'none';
+                }
+            }
+            const chatLink = document.querySelector('a[href="chat.html"]');
+            if (chatLink) {
+                const totalUnread = messages.filter(m => m.recipientId === user.id && !m.read).length + unread;
+                chatLink.innerHTML = totalUnread > 0 ? `💬 Чат <span style="background:red;color:white;border-radius:50%;padding:2px 6px;font-size:10px;">${totalUnread}</span>` : '💬 Чат';
+            }
+        }
+        
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'messages') {
+                loadMessages();
+                updateChatBadge();
+                loadSpecialists();
+            }
+        });
+        
+        loadSpecialists();
+        openGeneralChat();
+    </script>
+</body>
+</html>

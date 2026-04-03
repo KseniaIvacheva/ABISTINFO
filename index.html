@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Вход в систему</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+        }
+        .login-header { text-align: center; margin-bottom: 30px; }
+        .login-header h1 { color: #333; font-size: 28px; margin-bottom: 10px; }
+        .login-header p { color: #666; font-size: 14px; }
+        .role-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; justify-content: center; }
+        .role-btn { padding: 12px 24px; border: 2px solid #e0e0e0; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .role-btn:hover { border-color: #667eea; background: #f8f9ff; }
+        .role-btn.active { background: #667eea; border-color: #667eea; color: white; }
+        .password-input { margin-bottom: 20px; }
+        .password-input label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+        .password-input input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
+        .password-input input:focus { outline: none; border-color: #667eea; }
+        .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+        .login-btn:hover { transform: translateY(-2px); }
+        .error-message { color: #e74c3c; font-size: 14px; margin-top: 15px; text-align: center; display: none; }
+        .info { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-size: 12px; color: #666; }
+        .info p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🏥 АВА-центр</h1>
+            <p>Автоматизированная система управления</p>
+        </div>
+        <div class="role-buttons">
+            <button class="role-btn" data-role="admin">👑 Администратор</button>
+            <button class="role-btn" data-role="aba_терапевт">👨‍⚕️ АВА-терапевт</button>
+            <button class="role-btn" data-role="куратор_ава">📋 Куратор АВА</button>
+            <button class="role-btn" data-role="нейропсихолог">🧠 Нейропсихолог</button>
+            <button class="role-btn" data-role="логопед">🗣️ Логопед</button>
+            <button class="role-btn" data-role="психолог">💭 Психолог</button>
+            <button class="role-btn" data-role="дефектолог">📚 Дефектолог</button>
+        </div>
+        <div class="password-input">
+            <label>🔐 Пароль</label>
+            <input type="password" id="password" placeholder="Введите пароль">
+        </div>
+        <button class="login-btn" onclick="login()">Войти в систему</button>
+        <div class="error-message" id="errorMessage">Неверный пароль. Попробуйте снова.</div>
+        <div class="info">
+            <p><strong>📝 Пароли для входа:</strong></p>
+            <p>• Администратор: <code>admin123</code></p>
+            <p>• АВА-терапевт: <code>aba123</code></p>
+            <p>• Куратор АВА: <code>curator123</code></p>
+            <p>• Нейропсихолог: <code>neuro123</code></p>
+            <p>• Логопед: <code>logo123</code></p>
+            <p>• Психолог: <code>aba123</code></p>
+            <p>• Дефектолог: <code>aba123</code></p>
+        </div>
+    </div>
+    <script>
+        const rolePasswords = {
+            'admin': 'admin123',
+            'aba_терапевт': 'aba123',
+            'куратор_ава': 'curator123',
+            'нейропсихолог': 'neuro123',
+            'логопед': 'logo123',
+            'психолог': 'aba123',
+            'дефектолог': 'aba123'
+        };
+        let selectedRole = 'admin';
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedRole = this.dataset.role;
+            });
+        });
+        function login() {
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMessage');
+            const storedPassword = localStorage.getItem(`password_${selectedRole}`);
+            const validPassword = storedPassword || rolePasswords[selectedRole];
+            if (validPassword === password) {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    id: selectedRole === 'admin' ? 8 : (selectedRole === 'aba_терапевт' ? 1 : (selectedRole === 'куратор_ава' ? 3 : (selectedRole === 'нейропсихолог' ? 4 : (selectedRole === 'логопед' ? 5 : (selectedRole === 'психолог' ? 6 : 7))))),
+                    role: selectedRole,
+                    name: selectedRole === 'admin' ? 'Администратор' : (selectedRole === 'aba_терапевт' ? 'АВА-терапевт' : (selectedRole === 'куратор_ава' ? 'Куратор АВА' : (selectedRole === 'нейропсихолог' ? 'Нейропсихолог' : (selectedRole === 'логопед' ? 'Логопед' : (selectedRole === 'психолог' ? 'Психолог' : 'Дефектолог'))))),
+                    loginTime: new Date().toISOString()
+                }));
+                window.location.href = 'dashboard.html';
+            } else {
+                errorDiv.style.display = 'block';
+                setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
+            }
+        }
+        document.getElementById('password').addEventListener('keypress', function(e) { if (e.key === 'Enter') login(); });
+        document.querySelector('.role-btn').classList.add('active');
+    </script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Расписание</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .schedule-filters { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; }
+        .schedule-filters select, .schedule-filters input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; flex: 1; min-width: 150px; }
+        .schedule-table { background: white; border-radius: 12px; overflow: hidden; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+        .status-scheduled { background: #3498db; color: white; }
+        .status-completed { background: #27ae60; color: white; }
+        .status-cancelled { background: #e74c3c; color: white; }
+        .add-btn { margin-bottom: 20px; }
+        .room-badge { background: #f0f0f0; padding: 4px 8px; border-radius: 8px; font-size: 12px; }
+        .week-nav { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+        .week-nav button { padding: 8px 16px; }
+        .current-week { font-weight: bold; font-size: 18px; }
+        .chat-float { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; }
+        .chat-float:hover { transform: scale(1.05); background: #5a67d8; }
+        .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: none; align-items: center; justify-content: center; }
+        .admin-only { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><h1>🏥 АВА-центр</h1><p>Автоматизированная система управления</p></div>
+        <div class="user-info">
+            <span>👤 <span id="userName" class="user-name"></span></span>
+            <span id="adminBadge" style="background:#e74c3c;color:white;padding:4px 8px;border-radius:20px;font-size:12px;display:none;">👑 Администратор</span>
+            <button class="logout-btn" onclick="logout()">🚪 Выход</button>
+        </div>
+    </div>
+    
+    <div class="nav">
+        <a href="dashboard.html">📊 Главная</a>
+        <a href="schedule.html" class="active">📅 Расписание</a>
+        <a href="aba-therapy.html">🎯 АВА-терапия</a>
+        <a href="neuropsychologist.html">🧠 Нейропсихолог</a>
+        <a href="psychologist.html">💭 Психолог</a>
+        <a href="defectologist.html">📚 Дефектолог</a>
+        <a href="speech-therapist.html">🗣️ Логопед</a>
+        <a href="supervisor.html">📋 Куратор/Супервизия</a>
+        <a href="intensives.html">⚡ Интенсивы</a>
+        <a href="chat.html">💬 Чат</a>
+        <a href="settings.html">⚙️ Настройки</a>
+    </div>
+    
+    <div class="container">
+        <div class="add-btn admin-only">
+            <button onclick="openAddScheduleModal()" class="btn btn-success" id="addScheduleBtn">+ Добавить занятие</button>
+        </div>
+        
+        <div class="schedule-filters">
+            <select id="filterSpecialist"><option value="">Все специалисты</option></select>
+            <select id="filterRoom"><option value="">Все кабинеты</option><option value="101">101</option><option value="102">102</option><option value="103">103</option><option value="104">104</option><option value="105">105</option></select>
+            <input type="date" id="filterDate">
+            <select id="filterStatus"><option value="">Все статусы</option><option value="scheduled">Запланировано</option><option value="completed">Проведено</option><option value="cancelled">Отменено</option></select>
+            <button onclick="loadSchedule()" class="btn">🔍 Применить</button>
+            <button onclick="resetFilters()" class="btn">Сбросить</button>
+        </div>
+        
+        <div class="week-nav">
+            <button onclick="previousWeek()">◀ Предыдущая неделя</button>
+            <span class="current-week" id="currentWeek"></span>
+            <button onclick="nextWeek()">Следующая неделя ▶</button>
+            <button onclick="goToToday()">Сегодня</button>
+        </div>
+        
+        <div class="schedule-table">
+            <div class="table-container">
+                <table id="scheduleTable">
+                    <thead>
+                        <tr><th>Дата</th><th>Время</th><th>Ребенок</th><th>Специалист</th><th>Кабинет</th><th>Цели</th><th>Статус</th><th id="actionsHeader">Действия</th></tr>
+                    </thead>
+                    <tbody id="scheduleBody"><tr><td colspan="8" style="text-align: center;">Загрузка...</td></tr>
+                </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно добавления занятия (только для админа) -->
+    <div id="addScheduleModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>➕ Добавить занятие</h2><span class="close-modal" onclick="closeAddScheduleModal()">&times;</span></div><div class="modal-body">
+        <div class="form-group"><label>Ребенок *</label><select id="scheduleChildId" required><option value="">Выберите ребенка</option></select></div>
+        <div class="form-group"><label>Специалист *</label><select id="scheduleSpecialistId" required><option value="">Выберите специалиста</option></select></div>
+        <div class="form-group"><label>Дата *</label><input type="date" id="scheduleDate" required></div>
+        <div class="form-group"><label>Время *</label><input type="time" id="scheduleTime" required></div>
+        <div class="form-group"><label>Длительность (мин)</label><input type="number" id="scheduleDuration" value="60"></div>
+        <div class="form-group"><label>Кабинет</label><select id="scheduleRoom"><option value="101">101</option><option value="102">102</option><option value="103">103</option><option value="104">104</option><option value="105">105</option></select></div>
+        <div class="form-group"><label>Цели занятия</label><textarea id="scheduleGoals" rows="3"></textarea></div>
+        <div class="form-group"><label>Статус</label><select id="scheduleStatus"><option value="scheduled">Запланировано</option><option value="completed">Проведено</option><option value="cancelled">Отменено</option></select></div>
+    </div><div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;"><button onclick="saveScheduleItem()" class="btn btn-success">Сохранить</button><button onclick="closeAddScheduleModal()" class="btn">Отмена</button></div></div></div>
+    
+    <!-- Модальное окно редактирования (только для админа) -->
+    <div id="editScheduleModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>✏️ Редактировать</h2><span class="close-modal" onclick="closeEditScheduleModal()">&times;</span></div><div class="modal-body">
+        <input type="hidden" id="editScheduleId">
+        <div class="form-group"><label>Ребенок</label><select id="editChildId" disabled style="background:#f5f5f5;"></select></div>
+        <div class="form-group"><label>Специалист</label><select id="editSpecialistId"></select></div>
+        <div class="form-group"><label>Дата</label><input type="date" id="editDate"></div>
+        <div class="form-group"><label>Время</label><input type="time" id="editTime"></div>
+        <div class="form-group"><label>Длительность</label><input type="number" id="editDuration"></div>
+        <div class="form-group"><label>Кабинет</label><select id="editRoom"><option value="101">101</option><option value="102">102</option><option value="103">103</option><option value="104">104</option><option value="105">105</option></select></div>
+        <div class="form-group"><label>Цели</label><textarea id="editGoals" rows="3"></textarea></div>
+        <div class="form-group"><label>Статус</label><select id="editStatus"><option value="scheduled">Запланировано</option><option value="completed">Проведено</option><option value="cancelled">Отменено</option></select></div>
+    </div><div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;"><button onclick="updateScheduleItem()" class="btn btn-success">Сохранить</button><button onclick="deleteScheduleItemFromModal()" class="btn btn-danger">Удалить</button><button onclick="closeEditScheduleModal()" class="btn">Отмена</button></div></div></div>
+    
+    <a href="chat.html" class="chat-float">💬<span class="unread-badge" id="chatUnreadBadge">0</span></a>
+    
+    <script src="app.js"></script>
+    <script>
+        let currentWeekStart = null;
+        if (!checkAuth()) {}
+        
+        const user = getCurrentUser();
+        const isAdmin = user.role === 'admin';
+        
+        document.getElementById('userName').innerText = isAdmin ? 'Администратор' : getRoleName(user.role);
+        if (isAdmin) {
+            document.getElementById('adminBadge').style.display = 'inline-block';
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+        }
+        
+        function loadFilters() {
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            const specialistFilter = document.getElementById('filterSpecialist');
+            specialistFilter.innerHTML = '<option value="">Все специалисты</option>';
+            specialists.forEach(s => specialistFilter.innerHTML += `<option value="${s.id}">${s.name} (${getRoleName(s.role)})</option>`);
+            
+            const children = JSON.parse(localStorage.getItem('children') || '[]');
+            const childSelect = document.getElementById('scheduleChildId');
+            childSelect.innerHTML = '<option value="">Выберите ребенка</option>';
+            children.forEach(c => childSelect.innerHTML += `<option value="${c.id}">${c.fullName} (${c.id})</option>`);
+            
+            const specSelect = document.getElementById('scheduleSpecialistId');
+            specSelect.innerHTML = '<option value="">Выберите специалиста</option>';
+            specialists.forEach(s => specSelect.innerHTML += `<option value="${s.id}">${s.name} (${getRoleName(s.role)})</option>`);
+        }
+        
+        function loadSchedule() {
+            let schedule = JSON.parse(localStorage.getItem('schedule') || '[]');
+            
+            const filterSpecialist = document.getElementById('filterSpecialist').value;
+            const filterRoom = document.getElementById('filterRoom').value;
+            const filterDate = document.getElementById('filterDate').value;
+            const filterStatus = document.getElementById('filterStatus').value;
+            
+            // Если не админ — показываем только его занятия
+            if (!isAdmin) {
+                schedule = schedule.filter(s => s.specialistId == user.id);
+            }
+            
+            if (filterSpecialist) schedule = schedule.filter(s => s.specialistId == filterSpecialist);
+            if (filterRoom) schedule = schedule.filter(s => s.room === filterRoom);
+            if (filterDate) schedule = schedule.filter(s => s.date === filterDate);
+            if (filterStatus) schedule = schedule.filter(s => s.status === filterStatus);
+            
+            schedule.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.time.localeCompare(b.time);
+            });
+            
+            const tbody = document.getElementById('scheduleBody');
+            const actionsHeader = document.getElementById('actionsHeader');
+            
+            // Скрываем колонку действий для не-админов
+            if (!isAdmin && actionsHeader) {
+                actionsHeader.style.display = 'none';
+            } else if (actionsHeader) {
+                actionsHeader.style.display = 'table-cell';
+            }
+            
+            if (schedule.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Нет записей</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            schedule.forEach(item => {
+                const child = getChildById(item.childId);
+                const specialist = getSpecialistById(item.specialistId);
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = `<strong>${formatDate(item.date)}</strong><br><small>${item.date}</small>`;
+                row.insertCell(1).innerHTML = `<strong>${item.time}</strong><br><small>${item.duration || 60} мин</small>`;
+                row.insertCell(2).innerHTML = child ? `${child.fullName}<br><small>${child.id}</small>` : item.childId;
+                row.insertCell(3).innerHTML = specialist ? specialist.name : 'Не указан';
+                row.insertCell(4).innerHTML = `<span class="room-badge">Каб. ${item.room}</span>`;
+                row.insertCell(5).innerHTML = item.goals.substring(0, 50) + (item.goals.length > 50 ? '...' : '');
+                row.insertCell(6).innerHTML = `<span class="status-badge status-${item.status}">${getStatusText(item.status)}</span>`;
+                
+                // Кнопки действий только для админа
+                if (isAdmin) {
+                    row.insertCell(7).innerHTML = `
+                        <button onclick="openEditScheduleModal(${item.id})" class="btn" style="padding:5px 10px;">✏️</button>
+                        <button onclick="deleteScheduleItem(${item.id})" class="btn btn-danger" style="padding:5px 10px;">🗑️</button>
+                    `;
+                }
+            });
+        }
+        
+        function getStatusText(s) { const st = { scheduled: 'Запланировано', completed: 'Проведено', cancelled: 'Отменено' }; return st[s] || s; }
+        function resetFilters() { document.getElementById('filterSpecialist').value = ''; document.getElementById('filterRoom').value = ''; document.getElementById('filterDate').value = ''; document.getElementById('filterStatus').value = ''; loadSchedule(); }
+        function openAddScheduleModal() { document.getElementById('scheduleDate').value = getTodayDate(); document.getElementById('addScheduleModal').style.display = 'flex'; }
+        function closeAddScheduleModal() { document.getElementById('addScheduleModal').style.display = 'none'; }
+        
+        function saveScheduleItem() {
+            if (!isAdmin) { alert('Только администратор может изменять расписание'); return; }
+            const newItem = {
+                childId: document.getElementById('scheduleChildId').value,
+                specialistId: parseInt(document.getElementById('scheduleSpecialistId').value),
+                date: document.getElementById('scheduleDate').value,
+                time: document.getElementById('scheduleTime').value,
+                duration: parseInt(document.getElementById('scheduleDuration').value),
+                room: document.getElementById('scheduleRoom').value,
+                goals: document.getElementById('scheduleGoals').value,
+                status: document.getElementById('scheduleStatus').value
+            };
+            if (!newItem.childId || !newItem.specialistId || !newItem.date || !newItem.time) { alert('Заполните все поля'); return; }
+            addScheduleItem(newItem);
+            closeAddScheduleModal();
+            loadSchedule();
+            alert('Занятие добавлено!');
+            document.getElementById('scheduleGoals').value = '';
+        }
+        
+        function openEditScheduleModal(id) {
+            if (!isAdmin) { alert('Только администратор может изменять расписание'); return; }
+            const schedule = JSON.parse(localStorage.getItem('schedule') || '[]');
+            const item = schedule.find(s => s.id === id);
+            if (!item) return;
+            const children = JSON.parse(localStorage.getItem('children') || '[]');
+            const childSelect = document.getElementById('editChildId');
+            childSelect.innerHTML = '';
+            children.forEach(c => childSelect.innerHTML += `<option value="${c.id}" ${c.id === item.childId ? 'selected' : ''}>${c.fullName} (${c.id})</option>`);
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            const specSelect = document.getElementById('editSpecialistId');
+            specSelect.innerHTML = '';
+            specialists.forEach(s => specSelect.innerHTML += `<option value="${s.id}" ${s.id === item.specialistId ? 'selected' : ''}>${s.name}</option>`);
+            document.getElementById('editScheduleId').value = item.id;
+            document.getElementById('editDate').value = item.date;
+            document.getElementById('editTime').value = item.time;
+            document.getElementById('editDuration').value = item.duration || 60;
+            document.getElementById('editRoom').value = item.room;
+            document.getElementById('editGoals').value = item.goals;
+            document.getElementById('editStatus').value = item.status;
+            document.getElementById('editScheduleModal').style.display = 'flex';
+        }
+        
+        function closeEditScheduleModal() { document.getElementById('editScheduleModal').style.display = 'none'; }
+        function updateScheduleItem() {
+            if (!isAdmin) { alert('Только администратор может изменять расписание'); return; }
+            const id = parseInt(document.getElementById('editScheduleId').value);
+            updateScheduleItem(id, {
+                specialistId: parseInt(document.getElementById('editSpecialistId').value),
+                date: document.getElementById('editDate').value,
+                time: document.getElementById('editTime').value,
+                duration: parseInt(document.getElementById('editDuration').value),
+                room: document.getElementById('editRoom').value,
+                goals: document.getElementById('editGoals').value,
+                status: document.getElementById('editStatus').value
+            });
+            closeEditScheduleModal();
+            loadSchedule();
+            alert('Сохранено!');
+        }
+        function deleteScheduleItem(id) {
+            if (!isAdmin) { alert('Только администратор может изменять расписание'); return; }
+            if (confirm('Удалить?')) { deleteScheduleItem(id); loadSchedule(); alert('Удалено'); }
+        }
+        function deleteScheduleItemFromModal() { const id = parseInt(document.getElementById('editScheduleId').value); closeEditScheduleModal(); deleteScheduleItem(id); }
+        
+        function getWeekDates(date) { const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1); const monday = new Date(d.setDate(diff)); const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); return { monday, sunday }; }
+        function updateWeekDisplay() {
+            if (!currentWeekStart) currentWeekStart = new Date();
+            const { monday, sunday } = getWeekDates(currentWeekStart);
+            document.getElementById('currentWeek').innerHTML = `${formatDate(monday)} - ${formatDate(sunday)}`;
+            const schedule = JSON.parse(localStorage.getItem('schedule') || '[]');
+            const weekSchedule = schedule.filter(s => { const sd = new Date(s.date); return sd >= monday && sd <= sunday; });
+            if (!document.getElementById('filterDate').value) {
+                const tbody = document.getElementById('scheduleBody');
+                if (weekSchedule.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Нет занятий на этой неделе</td></tr>'; }
+                else {
+                    tbody.innerHTML = '';
+                    weekSchedule.sort((a,b)=>{if(a.date!==b.date)return a.date.localeCompare(b.date);return a.time.localeCompare(b.time);}).forEach(item=>{
+                        const child=getChildById(item.childId), specialist=getSpecialistById(item.specialistId);
+                        const row=tbody.insertRow();
+                        row.insertCell(0).innerHTML=`<strong>${formatDate(item.date)}</strong><br><small>${item.date}</small>`;
+                        row.insertCell(1).innerHTML=`<strong>${item.time}</strong><br><small>${item.duration||60} мин</small>`;
+                        row.insertCell(2).innerHTML=child?`${child.fullName}<br><small>${child.id}</small>`:item.childId;
+                        row.insertCell(3).innerHTML=specialist?specialist.name:'Не указан';
+                        row.insertCell(4).innerHTML=`<span class="room-badge">Каб. ${item.room}</span>`;
+                        row.insertCell(5).innerHTML=item.goals.substring(0,50)+(item.goals.length>50?'...':'');
+                        row.insertCell(6).innerHTML=`<span class="status-badge status-${item.status}">${getStatusText(item.status)}</span>`;
+                        if (isAdmin) {
+                            row.insertCell(7).innerHTML=`<button onclick="openEditScheduleModal(${item.id})" class="btn" style="padding:5px 10px;">✏️</button> <button onclick="deleteScheduleItem(${item.id})" class="btn btn-danger" style="padding:5px 10px;">🗑️</button>`;
+                        }
+                    });
+                }
+            }
+        }
+        function previousWeek() { currentWeekStart.setDate(currentWeekStart.getDate() - 7); updateWeekDisplay(); }
+        function nextWeek() { currentWeekStart.setDate(currentWeekStart.getDate() + 7); updateWeekDisplay(); }
+        function goToToday() { currentWeekStart = new Date(); updateWeekDisplay(); document.getElementById('filterDate').value = getTodayDate(); loadSchedule(); }
+        
+        function updateFloatChatBadge() {
+            const msgs = JSON.parse(localStorage.getItem('messages') || '[]');
+            const user = getCurrentUser();
+            const unread = msgs.filter(m => !m.read && m.recipientId !== user?.id).length;
+            const badge = document.getElementById('chatUnreadBadge');
+            if (badge) { if (unread > 0) { badge.innerText = unread > 99 ? '99+' : unread; badge.style.display = 'flex'; } else { badge.style.display = 'none'; } }
+        }
+        
+        loadFilters(); 
+        loadSchedule(); 
+        updateWeekDisplay(); 
+        updateFloatChatBadge();
+        window.addEventListener('storage', e => { if (e.key === 'messages') updateFloatChatBadge(); });
+        window.onclick = e => { if (e.target === document.getElementById('addScheduleModal')) closeAddScheduleModal(); if (e.target === document.getElementById('editScheduleModal')) closeEditScheduleModal(); };
+    </script>
+</body>
+</html>

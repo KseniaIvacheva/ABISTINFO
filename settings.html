@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Настройки</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .specialist-card { background: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #667eea; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .specialist-info { flex: 1; }
+        .specialist-name { font-weight: bold; font-size: 16px; }
+        .specialist-contact { font-size: 12px; color: #888; }
+        .specialist-actions { display: flex; gap: 8px; }
+        .role-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; background: #667eea; color: white; margin-left: 8px; }
+        .admin-badge { background: #e74c3c; }
+        .tab-buttons { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 20px; background: none; border: none; cursor: pointer; font-size: 16px; color: #666; }
+        .tab-btn.active { color: #667eea; border-bottom: 2px solid #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .admin-warning { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 8px; margin-bottom: 15px; color: #856404; font-size: 13px; }
+        .chat-float { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; }
+        .chat-float:hover { transform: scale(1.05); background: #5a67d8; }
+        .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: none; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><h1>🏥 АВА-центр</h1><p>Автоматизированная система управления</p></div>
+        <div class="user-info">
+            <span>👤 <span id="userName" class="user-name"></span></span>
+            <span id="adminBadge" style="background:#e74c3c;color:white;padding:4px 8px;border-radius:20px;font-size:12px;display:none;">👑 Администратор</span>
+            <button class="logout-btn" onclick="logout()">🚪 Выход</button>
+        </div>
+    </div>
+    <div class="nav">
+        <a href="dashboard.html">📊 Главная</a>
+        <a href="schedule.html">📅 Расписание</a>
+        <a href="aba-therapy.html">🎯 АВА-терапия</a>
+        <a href="neuropsychologist.html">🧠 Нейропсихолог</a>
+        <a href="psychologist.html">💭 Психолог</a>
+        <a href="defectologist.html">📚 Дефектолог</a>
+        <a href="speech-therapist.html">🗣️ Логопед</a>
+        <a href="supervisor.html">📋 Куратор/Супервизия</a>
+        <a href="intensives.html">⚡ Интенсивы</a>
+        <a href="chat.html">💬 Чат</a>
+        <a href="settings.html" class="active">⚙️ Настройки</a>
+    </div>
+    <div class="container">
+        <div class="tab-buttons" id="tabButtons">
+            <button class="tab-btn active" data-tab="profile">👤 Мой профиль</button>
+            <button class="tab-btn admin-only" data-tab="specialists" style="display:none;">👥 Управление специалистами</button>
+        </div>
+        <div id="tab-profile" class="tab-content active">
+            <div class="card">
+                <h2>⚙️ Настройки профиля</h2>
+                <div class="form-group"><label>Ваша роль</label><input type="text" id="userRole" readonly style="background:#f5f5f5;"></div>
+                <div class="form-group"><label>Ваше имя</label><input type="text" id="userNameDisplay" readonly style="background:#f5f5f5;"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="userEmail" readonly style="background:#f5f5f5;"></div>
+                <div class="form-group"><label>Телефон</label><input type="text" id="userPhone" readonly style="background:#f5f5f5;"></div>
+                <hr><h3>⏰ Настройки рабочего времени</h3>
+                <div class="form-group"><label>Время начала рабочего дня</label><input type="time" id="workStartTime" value="09:00"><small style="color:#666;display:block;">Напоминание за 30 минут</small></div>
+                <div class="form-group"><label>Напоминание о занятии за (минут)</label><select id="sessionReminderMinutes"><option value="15">15</option><option value="30">30</option><option value="45">45</option><option value="60" selected>60</option><option value="90">90</option><option value="120">120</option></select></div>
+                <hr><h3>🔐 Смена пароля</h3>
+                <div class="form-group"><label>Текущий пароль</label><input type="password" id="currentPassword"></div>
+                <div class="form-group"><label>Новый пароль</label><input type="password" id="newPassword"></div>
+                <div class="form-group"><label>Подтверждение</label><input type="password" id="confirmPassword"></div>
+                <button onclick="savePassword()" class="btn btn-success">💾 Сохранить пароль</button>
+                <div id="passwordMessage"></div>
+            </div>
+            <div class="card">
+                <h2>📱 Настройки уведомлений</h2>
+                <div class="form-group"><label><input type="checkbox" id="enableNotifications" onchange="toggleNotifications()"> Push-уведомления</label></div>
+                <div class="form-group"><label><input type="checkbox" id="enableSound" checked> Звук уведомлений</label></div>
+                <div class="form-group"><label><input type="checkbox" id="enableReminders" checked> Все напоминания</label></div>
+                <div class="form-group"><label><input type="checkbox" id="enableWorkdayReminder" checked> Напоминание о начале дня</label></div>
+                <div class="form-group"><label><input type="checkbox" id="enableSessionReminder" checked> Напоминания о занятиях</label></div>
+                <button onclick="saveNotificationSettings()" class="btn">💾 Сохранить настройки</button>
+            </div>
+            <div class="card"><h2>📅 Ваше расписание на сегодня</h2><div id="todaySchedulePreview"><p>Загрузка...</p></div></div>
+        </div>
+        <div id="tab-specialists" class="tab-content">
+            <div class="admin-warning">⚠️ <strong>Режим администратора</strong> — вы можете управлять всеми специалистами.</div>
+            <div class="card"><h2>👥 Управление специалистами</h2><button onclick="openAddSpecialistModal()" class="btn btn-success" style="margin-bottom:15px;">+ Добавить специалиста</button><div id="specialistsList"></div></div>
+        </div>
+        <div class="card"><h2>ℹ️ О системе</h2><p><strong>Версия:</strong> 2.0.0</p><p><strong>Дата:</strong> Март 2026</p></div>
+    </div>
+    <div id="specialistModal" class="modal"><div class="modal-content"><div class="modal-header"><h2 id="specialistModalTitle">➕ Добавить специалиста</h2><span class="close-modal" onclick="closeSpecialistModal()">&times;</span></div><div class="modal-body"><input type="hidden" id="editSpecialistId"><div class="form-group"><label>ФИО *</label><input type="text" id="specialistName"></div><div class="form-group"><label>Роль *</label><select id="specialistRole"><option value="admin">👑 Администратор</option><option value="aba_терапевт">🎯 АВА-терапевт</option><option value="куратор_ава">📋 Куратор АВА</option><option value="нейропсихолог">🧠 Нейропсихолог</option><option value="логопед">🗣️ Логопед</option><option value="психолог">💭 Психолог</option><option value="дефектолог">📚 Дефектолог</option></select></div><div class="form-group"><label>Email</label><input type="email" id="specialistEmail"></div><div class="form-group"><label>Телефон</label><input type="text" id="specialistPhone"></div><div class="form-group" id="passwordField"><label>Пароль *</label><input type="password" id="specialistPassword" placeholder="мин. 4 символа"></div></div><div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;"><button onclick="saveSpecialist()" class="btn btn-success">💾 Сохранить</button><button onclick="closeSpecialistModal()" class="btn">Отмена</button></div></div></div>
+    <a href="chat.html" class="chat-float">💬<span class="unread-badge" id="chatUnreadBadge">0</span></a>
+    <script src="app.js"></script>
+    <script>
+        if (!checkAuth()) {}
+        const user = getCurrentUser();
+        const userId = user.id || 1;
+        const isAdmin = user.role === 'admin';
+        document.getElementById('userName').innerText = isAdmin ? 'Администратор' : getRoleName(user.role);
+        document.getElementById('userRole').value = isAdmin ? 'Администратор' : getRoleName(user.role);
+        if (isAdmin) { document.getElementById('adminBadge').style.display = 'inline-block'; document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block'); }
+        
+        function loadCurrentUserData() {
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            const current = specialists.find(s => s.id === userId) || { name: isAdmin ? 'Администратор' : getRoleName(user.role), email: '', phone: '' };
+            document.getElementById('userNameDisplay').value = current.name;
+            document.getElementById('userEmail').value = current.email || '';
+            document.getElementById('userPhone').value = current.phone || '';
+        }
+        
+        function loadSpecialistsList() {
+            if (!isAdmin) return;
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            const container = document.getElementById('specialistsList');
+            if (specialists.length === 0) { container.innerHTML = '<p>Нет специалистов</p>'; return; }
+            container.innerHTML = '';
+            specialists.forEach(s => {
+                const isAdminUser = s.role === 'admin';
+                container.innerHTML += `<div class="specialist-card"><div class="specialist-info"><div class="specialist-name">${s.name} <span class="role-badge ${isAdminUser ? 'admin-badge' : ''}">${getRoleName(s.role)}</span></div><div class="specialist-contact">📧 ${s.email || 'не указан'} | 📞 ${s.phone || 'не указан'}</div></div><div class="specialist-actions"><button onclick="openEditSpecialistModal(${s.id})" class="btn" style="background:#3498db;">✏️</button><button onclick="changeSpecialistPassword(${s.id})" class="btn" style="background:#f39c12;">🔐</button><button onclick="deleteSpecialist(${s.id})" class="btn btn-danger" ${s.id === userId ? 'disabled' : ''}>🗑️</button></div></div>`;
+            });
+        }
+        
+        function openAddSpecialistModal() {
+            if (!isAdmin) return;
+            document.getElementById('specialistModalTitle').innerText = '➕ Добавить специалиста';
+            document.getElementById('editSpecialistId').value = '';
+            document.getElementById('specialistName').value = '';
+            document.getElementById('specialistRole').value = 'aba_терапевт';
+            document.getElementById('specialistEmail').value = '';
+            document.getElementById('specialistPhone').value = '';
+            document.getElementById('specialistPassword').value = '';
+            document.getElementById('passwordField').style.display = 'block';
+            document.getElementById('specialistModal').style.display = 'flex';
+        }
+        
+        function openEditSpecialistModal(id) {
+            if (!isAdmin) return;
+            const spec = JSON.parse(localStorage.getItem('specialists') || '[]').find(s => s.id === id);
+            if (!spec) return;
+            document.getElementById('specialistModalTitle').innerText = '✏️ Редактировать';
+            document.getElementById('editSpecialistId').value = spec.id;
+            document.getElementById('specialistName').value = spec.name;
+            document.getElementById('specialistRole').value = spec.role;
+            document.getElementById('specialistEmail').value = spec.email || '';
+            document.getElementById('specialistPhone').value = spec.phone || '';
+            document.getElementById('specialistPassword').value = '';
+            document.getElementById('passwordField').style.display = 'none';
+            document.getElementById('specialistModal').style.display = 'flex';
+        }
+        
+        function saveSpecialist() {
+            if (!isAdmin) return;
+            const id = document.getElementById('editSpecialistId').value;
+            const name = document.getElementById('specialistName').value.trim();
+            const role = document.getElementById('specialistRole').value;
+            const email = document.getElementById('specialistEmail').value;
+            const phone = document.getElementById('specialistPhone').value;
+            const password = document.getElementById('specialistPassword').value;
+            if (!name) { alert('Введите ФИО'); return; }
+            const specialists = JSON.parse(localStorage.getItem('specialists') || '[]');
+            if (id) {
+                const idx = specialists.findIndex(s => s.id == id);
+                if (idx !== -1) { specialists[idx] = { ...specialists[idx], name, role, email, phone }; localStorage.setItem('specialists', JSON.stringify(specialists)); alert('Сохранено'); }
+            } else {
+                if (!password || password.length < 4) { alert('Пароль мин. 4 символа'); return; }
+                const newId = specialists.length > 0 ? Math.max(...specialists.map(s => s.id)) + 1 : 8;
+                specialists.push({ id: newId, name, role, email, phone });
+                localStorage.setItem('specialists', JSON.stringify(specialists));
+                localStorage.setItem(`password_${role}`, password);
+                alert('Специалист добавлен');
+            }
+            closeSpecialistModal();
+            loadSpecialistsList();
+            loadCurrentUserData();
+        }
+        
+        function deleteSpecialist(id) {
+            if (!isAdmin || id === userId) { alert('Нельзя удалить себя'); return; }
+            if (confirm('Удалить?')) {
+                let s = JSON.parse(localStorage.getItem('specialists') || '[]');
+                s = s.filter(x => x.id !== id);
+                localStorage.setItem('specialists', JSON.stringify(s));
+                loadSpecialistsList();
+                alert('Удален');
+            }
+        }
+        
+        function changeSpecialistPassword(id) {
+            if (!isAdmin) return;
+            const spec = JSON.parse(localStorage.getItem('specialists') || '[]').find(s => s.id === id);
+            if (!spec) return;
+            const np = prompt(`Новый пароль для ${spec.name} (мин. 4 символа):`);
+            if (np && np.length >= 4) { localStorage.setItem(`password_${spec.role}`, np); alert('Пароль изменен'); }
+            else if (np) alert('Пароль должен быть не менее 4 символов');
+        }
+        
+        function closeSpecialistModal() { document.getElementById('specialistModal').style.display = 'none'; }
+        
+        function loadSpecialistSettings() {
+            const s = getSpecialistSettings(userId);
+            document.getElementById('workStartTime').value = s.workStartTime || '09:00';
+            document.getElementById('sessionReminderMinutes').value = s.sessionReminderMinutes || 60;
+            document.getElementById('enableReminders').checked = s.remindersEnabled !== false;
+            document.getElementById('enableWorkdayReminder').checked = s.workdayReminderEnabled !== false;
+            document.getElementById('enableSessionReminder').checked = s.sessionReminderEnabled !== false;
+        }
+        
+        function saveSpecialistSettingsFromForm() {
+            saveSpecialistSettings(userId, {
+                workStartTime: document.getElementById('workStartTime').value,
+                sessionReminderMinutes: parseInt(document.getElementById('sessionReminderMinutes').value),
+                remindersEnabled: document.getElementById('enableReminders').checked,
+                workdayReminderEnabled: document.getElementById('enableWorkdayReminder').checked,
+                sessionReminderEnabled: document.getElementById('enableSessionReminder').checked
+            });
+            showToast('✅ Сохранено', 'Настройки обновлены');
+        }
+        
+        function loadTodaySchedulePreview() {
+            const schedule = JSON.parse(localStorage.getItem('schedule') || '[]');
+            const today = getTodayDate();
+            const todaySessions = schedule.filter(s => s.date === today && s.specialistId === userId && s.status === 'scheduled').sort((a,b)=>a.time.localeCompare(b.time));
+            const container = document.getElementById('todaySchedulePreview');
+            if (todaySessions.length === 0) { container.innerHTML = '<p>Сегодня занятий нет</p>'; return; }
+            container.innerHTML = todaySessions.map(s => { const c = getChildById(s.childId); return `<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #eee;"><span>⏰ ${s.time}</span><span><strong>${c ? c.fullName : s.childId}</strong></span><span>📌 каб.${s.room}</span></div>`; }).join('');
+        }
+        
+        function savePassword() {
+            const cur = document.getElementById('currentPassword').value;
+            const neu = document.getElementById('newPassword').value;
+            const con = document.getElementById('confirmPassword').value;
+            const msg = document.getElementById('passwordMessage');
+            if (!cur || !neu) { msg.innerHTML = '<div class="alert alert-error">Заполните поля</div>'; return; }
+            if (neu !== con) { msg.innerHTML = '<div class="alert alert-error">Пароли не совпадают</div>'; return; }
+            if (neu.length < 4) { msg.innerHTML = '<div class="alert alert-error">Минимум 4 символа</div>'; return; }
+            const res = changePassword(user.role, cur, neu);
+            if (res.success) { msg.innerHTML = '<div class="alert alert-success">✅ Пароль изменен!</div>'; document.getElementById('currentPassword').value = ''; document.getElementById('newPassword').value = ''; document.getElementById('confirmPassword').value = ''; }
+            else { msg.innerHTML = `<div class="alert alert-error">❌ ${res.error}</div>`; }
+        }
+        
+        function toggleNotifications() { if (document.getElementById('enableNotifications').checked) requestNotificationPermission(); }
+        function saveNotificationSettings() {
+            localStorage.setItem('notificationSettings', JSON.stringify({
+                notifications: document.getElementById('enableNotifications').checked,
+                sound: document.getElementById('enableSound').checked,
+                remindersEnabled: document.getElementById('enableReminders').checked,
+                workdayReminderEnabled: document.getElementById('enableWorkdayReminder').checked,
+                sessionReminderEnabled: document.getElementById('enableSessionReminder').checked
+            }));
+            saveSpecialistSettingsFromForm();
+            showToast('✅ Сохранено', 'Настройки уведомлений обновлены');
+        }
+        function loadNotificationSettings() {
+            const s = JSON.parse(localStorage.getItem('notificationSettings') || '{}');
+            document.getElementById('enableNotifications').checked = s.notifications || false;
+            document.getElementById('enableSound').checked = s.sound !== false;
+            document.getElementById('enableReminders').checked = s.remindersEnabled !== false;
+            document.getElementById('enableWorkdayReminder').checked = s.workdayReminderEnabled !== false;
+            document.getElementById('enableSessionReminder').checked = s.sessionReminderEnabled !== false;
+            if (s.notifications) requestNotificationPermission();
+        }
+        
+        function updateFloatChatBadge() {
+            const msgs = JSON.parse(localStorage.getItem('messages') || '[]');
+            const user = getCurrentUser();
+            const unread = msgs.filter(m => !m.read && m.recipientId !== user?.id).length;
+            const badge = document.getElementById('chatUnreadBadge');
+            if (badge) { if (unread > 0) { badge.innerText = unread > 99 ? '99+' : unread; badge.style.display = 'flex'; } else { badge.style.display = 'none'; } }
+        }
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(`tab-${this.dataset.tab}`).classList.add('active');
+            });
+        });
+        
+        loadCurrentUserData();
+        loadSpecialistSettings();
+        loadNotificationSettings();
+        loadTodaySchedulePreview();
+        if (isAdmin) loadSpecialistsList();
+        updateFloatChatBadge();
+        window.addEventListener('storage', e => { if (e.key === 'messages') updateFloatChatBadge(); if (e.key === 'specialists' && isAdmin) loadSpecialistsList(); });
+        window.onclick = e => { if (e.target === document.getElementById('specialistModal')) closeSpecialistModal(); };
+    </script>
+</body>
+</html>

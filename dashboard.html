@@ -1,0 +1,227 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>АВА-центр - Главная</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .patient-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; cursor: pointer; border-left: 4px solid #667eea; transition: all 0.3s; }
+        .patient-card:hover { transform: translateX(5px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .patient-id { font-weight: bold; color: #667eea; font-size: 18px; }
+        .patient-name { font-size: 16px; margin: 5px 0; }
+        .diagnosis { font-size: 14px; color: #666; margin-top: 5px; }
+        .diagnosis-badge { display: inline-block; background: #f0f0f0; padding: 2px 8px; border-radius: 20px; font-size: 12px; margin-right: 5px; }
+        .search-filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-filters input, .search-filters select { padding: 10px; border: 1px solid #ddd; border-radius: 8px; flex: 1; min-width: 150px; }
+        .stats-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-item { background: white; padding: 10px 20px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .info-row { padding: 10px; border-bottom: 1px solid #eee; display: flex; }
+        .info-label { font-weight: bold; width: 150px; }
+        .info-value { flex: 1; }
+        .chat-float { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; }
+        .chat-float:hover { transform: scale(1.05); background: #5a67d8; }
+        .unread-badge { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: none; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo"><h1>🏥 АВА-центр</h1><p>Автоматизированная система управления</p></div>
+        <div class="user-info">
+            <span>👤 <span id="userName" class="user-name"></span></span>
+            <span id="adminBadge" style="background:#e74c3c;color:white;padding:4px 8px;border-radius:20px;font-size:12px;display:none;">👑 Администратор</span>
+            <button class="logout-btn" onclick="logout()">🚪 Выход</button>
+        </div>
+    </div>
+    <div class="nav">
+        <a href="dashboard.html" class="active">📊 Главная</a>
+        <a href="schedule.html">📅 Расписание</a>
+        <a href="aba-therapy.html">🎯 АВА-терапия</a>
+        <a href="neuropsychologist.html">🧠 Нейропсихолог</a>
+        <a href="psychologist.html">💭 Психолог</a>
+        <a href="defectologist.html">📚 Дефектолог</a>
+        <a href="speech-therapist.html">🗣️ Логопед</a>
+        <a href="supervisor.html">📋 Куратор/Супервизия</a>
+        <a href="intensives.html">⚡ Интенсивы</a>
+        <a href="chat.html">💬 Чат</a>
+        <a href="settings.html">⚙️ Настройки</a>
+    </div>
+    <div class="container">
+        <div class="stats-bar">
+            <div class="stat-item">👶 Всего пациентов: <strong id="totalPatients">0</strong></div>
+            <div class="stat-item">📋 Активных программ: <strong id="activePrograms">0</strong></div>
+            <div class="stat-item">✅ Занятий сегодня: <strong id="todaySessions">0</strong></div>
+        </div>
+        <div class="card">
+            <h2>🔍 Поиск пациентов</h2>
+            <div class="search-filters">
+                <input type="text" id="searchId" placeholder="Поиск по ID (CH-001)">
+                <input type="text" id="searchName" placeholder="Поиск по имени">
+                <select id="filterDiagnosis"><option value="">Все диагнозы</option><option value="F84.0">F84.0 - Детский аутизм</option><option value="F84.5">F84.5 - Синдром Аспергера</option><option value="F70">F70 - Легкая умственная отсталость</option><option value="F71">F71 - Умеренная умственная отсталость</option><option value="G80">G80 - ДЦП</option></select>
+                <button onclick="resetFilters()" class="btn">Сбросить</button>
+                <button onclick="openAddPatientModal()" class="btn btn-success">+ Добавить пациента</button>
+            </div>
+        </div>
+        <div class="card">
+            <h2>📋 Список пациентов</h2>
+            <div id="patientsList"><p style="text-align:center;">Загрузка...</p></div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно просмотра пациента -->
+    <div id="patientModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📋 Карта пациента</h2><span class="close-modal" onclick="closePatientModal()">&times;</span></div><div class="modal-body" id="patientModalBody"></div><div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;"><button onclick="printProgram()" class="btn">🖨️ Программа</button><button onclick="printConsent()" class="btn" style="background:#f39c12;">📄 Согласие</button><button onclick="closePatientModal()" class="btn btn-danger">Закрыть</button></div></div></div>
+    
+    <!-- Модальное окно добавления пациента -->
+    <div id="addPatientModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>➕ Добавить пациента</h2><span class="close-modal" onclick="closeAddPatientModal()">&times;</span></div><div class="modal-body"><div class="form-group"><label>ID</label><input type="text" id="newPatientId" readonly style="background:#f5f5f5;"></div><div class="form-group"><label>ФИО *</label><input type="text" id="newPatientName"></div><div class="form-group"><label>Анонимный ID</label><input type="text" id="newPatientAnonId"></div><div class="form-group"><label>Дата рождения</label><input type="date" id="newPatientBirthDate"></div><div class="form-group"><label>Диагноз МКБ-10</label><select id="newPatientDiagnosis"><option value="">Выберите</option><option value="F84.0">F84.0 - Детский аутизм</option><option value="F84.5">F84.5 - Синдром Аспергера</option><option value="F70">F70 - Легкая умственная отсталость</option><option value="F71">F71 - Умеренная умственная отсталость</option><option value="G80">G80 - ДЦП</option></select></div><div class="form-group"><label>Примечания</label><textarea id="newPatientNotes" rows="3"></textarea></div></div><div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;"><button onclick="saveNewPatient()" class="btn btn-success">Сохранить</button><button onclick="closeAddPatientModal()" class="btn">Отмена</button></div></div></div>
+    
+    <!-- Модальное окно согласия на обработку данных -->
+    <div id="consentModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header"><h2>📋 Согласие на обработку персональных данных</h2></div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px;">Я, как пользователь системы «АВА-центр», даю согласие на обработку моих персональных данных, включая:</p>
+                <ul style="margin-bottom: 15px; padding-left: 20px;"><li>ФИО</li><li>Контактные данные (email, телефон)</li><li>Данные о работе в системе</li><li>Историю действий и сообщений</li></ul>
+                <p style="margin-bottom: 20px;">Согласие действует на весь период использования системы.</p>
+                <div class="form-group"><label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="checkbox" id="consentCheckbox"> Я согласен(на) на обработку персональных данных</label></div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;"><button onclick="acceptConsent()" id="acceptConsentBtn" class="btn btn-success" disabled>Принять и продолжить</button></div>
+        </div>
+    </div>
+    
+    <a href="chat.html" class="chat-float">💬<span class="unread-badge" id="chatUnreadBadge">0</span></a>
+    
+    <script src="app.js"></script>
+    <script>
+        let currentSelectedPatient = null;
+        if (!checkAuth()) {}
+        const user = getCurrentUser();
+        document.getElementById('userName').innerText = getRoleName(user.role);
+        if (user.role === 'admin') document.getElementById('adminBadge').style.display = 'inline-block';
+        
+        // СОГЛАСИЕ НА ОБРАБОТКУ ДАННЫХ
+        function checkConsent() {
+            const consented = localStorage.getItem('consent_given');
+            if (!consented) {
+                document.getElementById('consentModal').style.display = 'flex';
+                document.getElementById('consentCheckbox').checked = false;
+                document.getElementById('acceptConsentBtn').disabled = true;
+            }
+        }
+        document.getElementById('consentCheckbox')?.addEventListener('change', function(e) {
+            document.getElementById('acceptConsentBtn').disabled = !e.target.checked;
+        });
+        function acceptConsent() {
+            if (document.getElementById('consentCheckbox').checked) {
+                localStorage.setItem('consent_given', 'true');
+                localStorage.setItem('consent_date', new Date().toISOString());
+                document.getElementById('consentModal').style.display = 'none';
+                showToast('✅ Спасибо', 'Согласие принято');
+            }
+        }
+        
+        function loadPatients() {
+            let patients = JSON.parse(localStorage.getItem('children') || '[]');
+            const sid = document.getElementById('searchId').value.toLowerCase();
+            const sname = document.getElementById('searchName').value.toLowerCase();
+            const fdiag = document.getElementById('filterDiagnosis').value;
+            if (sid) patients = patients.filter(p => p.id.toLowerCase().includes(sid));
+            if (sname) patients = patients.filter(p => p.fullName.toLowerCase().includes(sname));
+            if (fdiag) patients = patients.filter(p => p.diagnosis === fdiag);
+            const cont = document.getElementById('patientsList');
+            if (patients.length === 0) { cont.innerHTML = '<p style="text-align:center;">Пациенты не найдены</p>'; return; }
+            cont.innerHTML = '';
+            patients.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'patient-card';
+                card.onclick = () => openPatientModal(p);
+                card.innerHTML = `<div class="patient-id">🆔 ${p.id}</div><div class="patient-name">${p.fullName}</div><div class="diagnosis"><span class="diagnosis-badge">📋 ${p.diagnosis || 'Диагноз не указан'}</span>${p.birthDate ? `<span class="diagnosis-badge">🎂 ${formatDate(p.birthDate)}</span>` : ''}</div>`;
+                cont.appendChild(card);
+            });
+            document.getElementById('totalPatients').innerText = patients.length;
+            const prog = JSON.parse(localStorage.getItem('programs') || '[]');
+            document.getElementById('activePrograms').innerText = prog.length;
+            const sched = JSON.parse(localStorage.getItem('schedule') || '[]');
+            document.getElementById('todaySessions').innerText = sched.filter(s => s.date === getTodayDate()).length;
+        }
+        
+        function openPatientModal(p) {
+            currentSelectedPatient = p;
+            const prog = getProgramByChildId(p.id);
+            const med = JSON.parse(localStorage.getItem('medicalInfo') || '{}')[p.id] || {};
+            document.getElementById('patientModalBody').innerHTML = `
+                <div class="info-row"><div class="info-label">🆔 ID:</div><div class="info-value"><strong>${p.id}</strong></div></div>
+                <div class="info-row"><div class="info-label">🔒 Анонимный ID:</div><div class="info-value">${p.anonymousId || 'Не указан'}</div></div>
+                <div class="info-row"><div class="info-label">👤 ФИО:</div><div class="info-value">${p.fullName}</div></div>
+                <div class="info-row"><div class="info-label">🎂 Дата рождения:</div><div class="info-value">${p.birthDate ? formatDate(p.birthDate) : 'Не указана'}</div></div>
+                <div class="info-row"><div class="info-label">📋 Диагноз:</div><div class="info-value"><strong>${p.diagnosis || 'Не указан'}</strong></div></div>
+                <div class="info-row"><div class="info-label">🧠 Психиатрия:</div><div class="info-value">${med.psychiatry || 'Не указано'}</div></div>
+                <div class="info-row"><div class="info-label">⚕️ Неврология:</div><div class="info-value">${med.neurology || 'Не указано'}</div></div>
+                <div class="info-row"><div class="info-label">📖 Анамнез:</div><div class="info-value">${med.anamnesis || 'Не указан'}</div></div>
+                <div class="info-row"><div class="info-label">📚 Программа:</div><div class="info-value">${prog ? prog.content : 'Не создана'}</div></div>
+                <div class="info-row"><div class="info-label">✅ Чек-листы:</div><div class="info-value">${prog ? prog.checklists : 'Нет данных'}</div></div>
+                <div class="info-row"><div class="info-label">📝 Примечания:</div><div class="info-value">${p.notes || 'Нет'}</div></div>`;
+            document.getElementById('patientModal').style.display = 'flex';
+        }
+        
+        function closePatientModal() { document.getElementById('patientModal').style.display = 'none'; }
+        function printProgram() { if (currentSelectedPatient) printProgram(currentSelectedPatient.id); }
+        
+        function printConsent() {
+            if (!currentSelectedPatient) return;
+            const win = window.open('', '_blank');
+            const today = new Date().toLocaleDateString('ru-RU');
+            win.document.write(`
+                <!DOCTYPE html><html><head><meta charset="UTF-8"><title>Согласие - ${currentSelectedPatient.fullName}</title>
+                <style>body{font-family:'Times New Roman',serif;margin:40px;line-height:1.5;}h1{text-align:center;font-size:18px;}.info{margin:20px 0;padding:15px;background:#f5f5f5;}.signature{margin-top:50px;display:flex;justify-content:space-between;}.signature-line{width:200px;border-top:1px solid #000;margin-top:30px;}</style>
+                </head><body>
+                <h1>СОГЛАСИЕ НА ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ</h1>
+                <div class="info"><p><strong>Пациент:</strong> ${currentSelectedPatient.fullName}</p><p><strong>Дата рождения:</strong> ${currentSelectedPatient.birthDate ? formatDate(currentSelectedPatient.birthDate) : '___________'}</p><p><strong>ID:</strong> ${currentSelectedPatient.id}</p></div>
+                <p>Я, законный представитель, даю согласие на обработку персональных данных моего ребенка. Согласие дается на период оказания услуг.</p>
+                <div class="signature"><div><p>Законный представитель:</p><div class="signature-line"></div><p>____________________ / ____________________ /</p></div><div><p>Специалист:</p><div class="signature-line"></div><p>____________________ / ____________________ /</p></div></div>
+                <p style="text-align:center;margin-top:30px;">Дата: ${today}</p>
+                <button onclick="window.print()" style="position:fixed;bottom:20px;right:20px;padding:10px 20px;">🖨️ Печать</button>
+                </body></html>
+            `);
+            win.document.close();
+        }
+        
+        function openAddPatientModal() {
+            const pts = JSON.parse(localStorage.getItem('children') || '[]');
+            const n = pts.length + 1;
+            document.getElementById('newPatientId').value = `CH-${String(n).padStart(3,'0')}`;
+            document.getElementById('newPatientAnonId').value = `ANON-${String(n).padStart(3,'0')}`;
+            document.getElementById('newPatientName').value = '';
+            document.getElementById('newPatientBirthDate').value = '';
+            document.getElementById('newPatientDiagnosis').value = '';
+            document.getElementById('newPatientNotes').value = '';
+            document.getElementById('addPatientModal').style.display = 'flex';
+        }
+        function closeAddPatientModal() { document.getElementById('addPatientModal').style.display = 'none'; }
+        function saveNewPatient() {
+            const np = { id: document.getElementById('newPatientId').value, anonymousId: document.getElementById('newPatientAnonId').value, fullName: document.getElementById('newPatientName').value, birthDate: document.getElementById('newPatientBirthDate').value, diagnosis: document.getElementById('newPatientDiagnosis').value, notes: document.getElementById('newPatientNotes').value };
+            if (!np.fullName) { alert('Введите ФИО'); return; }
+            const pts = JSON.parse(localStorage.getItem('children') || '[]');
+            pts.push(np);
+            localStorage.setItem('children', JSON.stringify(pts));
+            closeAddPatientModal();
+            loadPatients();
+            alert('Пациент добавлен!');
+        }
+        function resetFilters() { document.getElementById('searchId').value = ''; document.getElementById('searchName').value = ''; document.getElementById('filterDiagnosis').value = ''; loadPatients(); }
+        
+        function updateFloatChatBadge() {
+            const msgs = JSON.parse(localStorage.getItem('messages') || '[]');
+            const user = getCurrentUser();
+            const unread = msgs.filter(m => !m.read && m.recipientId !== user?.id).length;
+            const badge = document.getElementById('chatUnreadBadge');
+            if (badge) { if (unread > 0) { badge.innerText = unread > 99 ? '99+' : unread; badge.style.display = 'flex'; } else { badge.style.display = 'none'; } }
+        }
+        
+        checkConsent();
+        loadPatients();
+        updateFloatChatBadge();
+        window.addEventListener('storage', e => { if (e.key === 'messages') updateFloatChatBadge(); });
+        window.onclick = e => { if (e.target === document.getElementById('patientModal')) closePatientModal(); if (e.target === document.getElementById('addPatientModal')) closeAddPatientModal(); if (e.target === document.getElementById('consentModal')) {} };
+    </script>
+</body>
+</html>
